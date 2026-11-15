@@ -1,11 +1,13 @@
 package com.pulsepass.persistence;
 
+import com.pulsepass.domain.Artist;
 import com.pulsepass.domain.Event;
 import com.pulsepass.domain.Venue;
 import com.pulsepass.domain.enums.EventCategory;
 import com.pulsepass.domain.enums.EventStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Datos de prueba de la Fase 1 - Persistencia (P1-12-a).
@@ -32,6 +34,15 @@ final class PersistenceFixtures {
 
     /** DATO DE PRUEBA: §16.2 no indica la edad mínima de CMF-2026. */
     static final int CMF_2026_MINIMUM_AGE = 0;
+
+    /**
+     * Artistas de CMF-2026 (PRD §16.2). Ya existen en la base de datos porque los inserta V2:
+     * las pruebas los consultan por nombre y nunca los vuelven a insertar.
+     */
+    static final List<String> CMF_2026_ARTIST_NAMES = List.of(
+            "Solar Beat",       // PRD §16.2
+            "Neon Waves",       // PRD §16.2
+            "Caribbean Sound"); // PRD §16.2
 
     private PersistenceFixtures() {
         // Clase de utilidades: no se instancia.
@@ -93,5 +104,18 @@ final class PersistenceFixtures {
                 eventDate,                       // DATO DE PRUEBA
                 0,                               // DATO DE PRUEBA
                 venue);
+    }
+
+    /**
+     * DATO DE PRUEBA: artista nuevo, no definido en §16 ni en V2, con el nombre artístico que
+     * necesite cada prueba. Cada llamada devuelve un objeto nuevo, sin persistir.
+     */
+    static Artist testArtist(String stageName) {
+        Artist artist = new Artist(
+                stageName,                   // DATO DE PRUEBA
+                true);                       // DATO DE PRUEBA
+        artist.setCountry("Colombia");       // DATO DE PRUEBA
+        artist.setGenre("Electrónica");      // DATO DE PRUEBA
+        return artist;
     }
 }
