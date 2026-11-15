@@ -1,0 +1,14 @@
+# Archivos temporales de macOS
+.DS_Store
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Backend: compilación Maven
+backend/target/
+
+# Frontend: dependencias y compilación
+frontend/node_modules/
+frontend/dist/
