@@ -2,12 +2,16 @@ package com.pulsepass.persistence;
 
 import com.pulsepass.domain.Artist;
 import com.pulsepass.domain.Event;
+import com.pulsepass.domain.Ticket;
 import com.pulsepass.domain.User;
 import com.pulsepass.domain.UserProfile;
 import com.pulsepass.domain.Venue;
 import com.pulsepass.domain.enums.EventCategory;
 import com.pulsepass.domain.enums.EventStatus;
+import com.pulsepass.domain.enums.TicketStatus;
+import com.pulsepass.domain.enums.TicketType;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -160,5 +164,74 @@ final class PersistenceFixtures {
                 firstName,                           // DATO DE PRUEBA
                 "Prueba",                            // DATO DE PRUEBA
                 LocalDate.of(1995, 1, 15));          // DATO DE PRUEBA
+    }
+
+    /** DATO DE PRUEBA: fecha fija de compra para los tickets PAID y CANCELLED de §16.3. */
+    static final LocalDateTime REFERENCE_PURCHASE_DATE = LocalDateTime.of(2030, 1, 10, 10, 0);
+
+    /**
+     * Ticket de Andrea (PRD §16.3): VIP, PAID, 250000. Usa el código TCK-0001 del escenario AC-005.
+     * Cada llamada devuelve un objeto nuevo, sin persistir.
+     */
+    static Ticket andreaTicket(User andrea, Event event) {
+        Ticket ticket = new Ticket(
+                "TCK-0001",                          // PRD AC-005 (asignado a Andrea: DATO DE PRUEBA)
+                TicketType.VIP,                      // PRD §16.3
+                new BigDecimal("250000.00"),         // PRD §16.3
+                TicketStatus.PAID,                   // PRD §16.3
+                andrea, event);
+        ticket.setPurchaseDate(REFERENCE_PURCHASE_DATE); // DATO DE PRUEBA
+        return ticket;
+    }
+
+    /** Ticket de Carlos (PRD §16.3): GENERAL, PAID, 120000. */
+    static Ticket carlosTicket(User carlos, Event event) {
+        Ticket ticket = new Ticket(
+                "TCK-0002",                          // DATO DE PRUEBA
+                TicketType.GENERAL,                  // PRD §16.3
+                new BigDecimal("120000.00"),         // PRD §16.3
+                TicketStatus.PAID,                   // PRD §16.3
+                carlos, event);
+        ticket.setPurchaseDate(REFERENCE_PURCHASE_DATE); // DATO DE PRUEBA
+        return ticket;
+    }
+
+    /**
+     * Ticket de Laura (PRD §16.3): GENERAL, RESERVED, 120000. Sin fecha de compra: un ticket
+     * RESERVED todavía no se ha comprado (P1-D1).
+     */
+    static Ticket lauraTicket(User laura, Event event) {
+        return new Ticket(
+                "TCK-0003",                          // DATO DE PRUEBA
+                TicketType.GENERAL,                  // PRD §16.3
+                new BigDecimal("120000.00"),         // PRD §16.3
+                TicketStatus.RESERVED,               // PRD §16.3
+                laura, event);
+    }
+
+    /** Ticket de Miguel (PRD §16.3): VIP, CANCELLED, 250000. */
+    static Ticket miguelTicket(User miguel, Event event) {
+        Ticket ticket = new Ticket(
+                "TCK-0004",                          // DATO DE PRUEBA
+                TicketType.VIP,                      // PRD §16.3
+                new BigDecimal("250000.00"),         // PRD §16.3
+                TicketStatus.CANCELLED,              // PRD §16.3
+                miguel, event);
+        ticket.setPurchaseDate(REFERENCE_PURCHASE_DATE); // DATO DE PRUEBA: se compró antes de cancelarse
+        return ticket;
+    }
+
+    /**
+     * DATO DE PRUEBA: ticket adicional, no definido en §16.3, con los valores que necesite cada
+     * prueba. purchaseDate queda en null; la prueba la asigna si la necesita.
+     */
+    static Ticket testTicket(String ticketCode, TicketType type, BigDecimal price, TicketStatus status,
+                             User user, Event event) {
+        return new Ticket(
+                ticketCode,                          // DATO DE PRUEBA
+                type,                                // DATO DE PRUEBA
+                price,                               // DATO DE PRUEBA
+                status,                              // DATO DE PRUEBA
+                user, event);
     }
 }
