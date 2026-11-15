@@ -2,12 +2,16 @@ package com.pulsepass.persistence;
 
 import com.pulsepass.domain.Artist;
 import com.pulsepass.domain.Event;
+import com.pulsepass.domain.User;
+import com.pulsepass.domain.UserProfile;
 import com.pulsepass.domain.Venue;
 import com.pulsepass.domain.enums.EventCategory;
 import com.pulsepass.domain.enums.EventStatus;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Datos de prueba de la Fase 1 - Persistencia (P1-12-a).
@@ -117,5 +121,44 @@ final class PersistenceFixtures {
         artist.setCountry("Colombia");       // DATO DE PRUEBA
         artist.setGenre("Electrónica");      // DATO DE PRUEBA
         return artist;
+    }
+
+    /**
+     * Usuario con su perfil, para los nombres de §16.3 (Andrea, Carlos, Laura, Miguel).
+     * §16.3 solo indica el nombre; el resto son datos de prueba. El perfil se enlaza con
+     * {@link User#setProfile(UserProfile)} (P1-D3), así que basta guardar el usuario para que el
+     * cascade PERSIST guarde también el perfil. Cada llamada devuelve objetos nuevos, sin persistir.
+     */
+    static User userWithProfile(String firstName) {
+        String login = firstName.toLowerCase(Locale.ROOT);
+        User user = new User(
+                login,                               // DATO DE PRUEBA: username derivado del nombre
+                login + "@pulsepass.test",           // DATO DE PRUEBA: dominio reservado .test
+                true);                               // DATO DE PRUEBA: §16.3 no indica el estado
+        // phone y city: no se asignan; quedan en null (columnas opcionales, V1-3).
+        user.setProfile(new UserProfile(
+                firstName,                           // PRD §16.3 (nombre del usuario)
+                "Prueba",                            // DATO DE PRUEBA
+                LocalDate.of(1995, 1, 15)));         // DATO DE PRUEBA
+        return user;
+    }
+
+    /**
+     * DATO DE PRUEBA: usuario sin perfil, con el username y el email que necesite cada prueba
+     * (por ejemplo, para provocar duplicados). Cada llamada devuelve un objeto nuevo, sin persistir.
+     */
+    static User testUser(String username, String email) {
+        return new User(
+                username,                            // DATO DE PRUEBA
+                email,                               // DATO DE PRUEBA
+                true);                               // DATO DE PRUEBA
+    }
+
+    /** DATO DE PRUEBA: perfil adicional, por ejemplo para intentar un segundo perfil (AC-004). */
+    static UserProfile testProfile(String firstName) {
+        return new UserProfile(
+                firstName,                           // DATO DE PRUEBA
+                "Prueba",                            // DATO DE PRUEBA
+                LocalDate.of(1995, 1, 15));          // DATO DE PRUEBA
     }
 }
