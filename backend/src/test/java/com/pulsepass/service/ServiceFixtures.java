@@ -28,8 +28,8 @@ import java.time.LocalDateTime;
  * <p>Los datos de este archivo pertenecen exclusivamente al PRD de Servicios. Es
  * independiente de {@code PersistenceFixtures}, cuyos datos son del PRD de Persistencia y en
  * algunos casos difieren (por ejemplo, la capacidad de VEN-SMR-01). No incluye tickets ni
- * precios: la estrategia de precios se decide en P2-12 (P2-D2). Tampoco incluye el «tercer
- * usuario adulto» de AC-008, que se definirá en P2-13.
+ * precios: la estrategia de precios se decide en P2-12 (P2-D2). El «tercer usuario adulto»
+ * de AC-008 es {@link #sofia()}, cuyos datos son todos DATO DE PRUEBA (P2-13 TK-8).
  *
  * <p>Es pública porque la usan pruebas de otros paquetes, como {@code com.pulsepass.mapper}.
  */
@@ -123,6 +123,15 @@ public final class ServiceFixtures {
     public static User miguel() {
         return user("miguel", "miguel@email.com", false,
                 "Miguel", "Torres", LocalDate.of(1996, 6, 15)); // 30 años en el evento
+    }
+
+    /**
+     * Sofía: el «tercer usuario adulto» de AC-008, adulta y activa. §47 no la define: todos sus
+     * datos son DATO DE PRUEBA aprobado en P2-13 (TK-8), no un requisito del PRD.
+     */
+    public static User sofia() {
+        return user("sofia", "sofia@email.com", true,
+                "Sofía", "Gómez", LocalDate.of(1998, 6, 15)); // DATO DE PRUEBA; 28 años en el evento
     }
 
     /**
