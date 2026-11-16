@@ -5,3 +5,9 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        # P3-02: con Hibernate Validator en el classpath, Hibernate desactiva por defecto su
+        # comprobación de nulos. Se reactiva para conservar el rechazo antes del INSERT que
+        # verifican las pruebas de la Fase 1 (relaciones obligatorias venue, user y event).
+        check_nullability: true
