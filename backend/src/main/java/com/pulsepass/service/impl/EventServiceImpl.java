@@ -1,5 +1,6 @@
 package com.pulsepass.service.impl;
 
+import com.pulsepass.domain.Artist;
 import com.pulsepass.domain.Event;
 import com.pulsepass.domain.Venue;
 import com.pulsepass.domain.enums.EventStatus;
@@ -10,6 +11,7 @@ import com.pulsepass.exception.BusinessRuleException;
 import com.pulsepass.exception.DuplicateResourceException;
 import com.pulsepass.exception.ResourceNotFoundException;
 import com.pulsepass.mapper.EventMapper;
+import com.pulsepass.repository.ArtistRepository;
 import com.pulsepass.repository.EventRepository;
 import com.pulsepass.repository.VenueRepository;
 import com.pulsepass.service.EventService;
@@ -21,14 +23,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Implementación de {@link EventService}, parte 1 (PRD Servicios §11, §14; P2-09).
+ * Implementación de {@link EventService} (PRD Servicios §11, §14, §15, §16). Parte 1 en P2-09
+ * ({@code create}, {@code findByCode}, {@code findPublishedEvents}); parte 2 en P2-10
+ * ({@code publish}, {@code addArtist}, {@code findByArtist}).
  *
  * <ul>
  *   <li>Dependencias {@code final} recibidas por constructor (SRV-002, NFR-002). El
  *       {@link Clock} es el bean de {@code ClockConfig} (P2-D4); en las pruebas se usa
  *       {@code Clock.fixed(...)}.</li>
- *   <li>{@code create} es escritura ({@code @Transactional}); las consultas son
- *       {@code readOnly} (SRV-004, §38, P2-D14).</li>
+ *   <li>{@code create}, {@code publish} y {@code addArtist} son escrituras
+ *       ({@code @Transactional}); las consultas son {@code readOnly} (SRV-004, §38, P2-D14).</li>
  *   <li>Solo se aplican reglas de negocio. La validación estructural (campos nulos o vacíos)
  *       pertenece a Bean Validation en la capa de Controladores (P2-D18, P2-09 E-3a).</li>
  *   <li>La conversión a DTO la hace {@link EventMapper} (NFR-004).</li>
@@ -41,14 +45,18 @@ public class EventServiceImpl implements EventService {
 
     private final VenueRepository venueRepository;
 
+    /** Necesario para {@code addArtist} (P2-10). */
+    private final ArtistRepository artistRepository;
+
     private final EventMapper eventMapper;
 
     private final Clock clock;
 
     public EventServiceImpl(EventRepository eventRepository, VenueRepository venueRepository,
-                            EventMapper eventMapper, Clock clock) {
+                            ArtistRepository artistRepository, EventMapper eventMapper, Clock clock) {
         this.eventRepository = eventRepository;
         this.venueRepository = venueRepository;
+        this.artistRepository = artistRepository;
         this.eventMapper = eventMapper;
         this.clock = clock;
     }
@@ -113,5 +121,94 @@ public class EventServiceImpl implements EventService {
                 .stream()
                 .map(eventMapper::toSummary)
                 .toList();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Orden de validación según la numeración del PRD (P2-10 F-5a). Si una regla falla, se
+     * lanza la excepción y no se guarda nada. Mensajes según P2-10 F-6a; BR-EVENT-008 y 009
+     * reutilizan los de {@code create} (P2-09 E-5a).
+     */
+    @Override
+    @Transactional
+    public EventResponse publish(String eventCode) {
+        Event event = findEventOrThrow(eventCode);
+
+        // BR-EVENT-007: solo se publica desde DRAFT.
+        if (event.getStatus() != EventStatus.DRAFT) {
+            throw new BusinessRuleException("Only DRAFT events can be published: " + eventCode);
+        }
+
+        // BR-EVENT-008: la fecha debe seguir siendo futura; comparación estricta (P2-D4).
+        if (!event.getEventDate().isAfter(LocalDateTime.now(clock))) {
+            throw new BusinessRuleException("Event date must be in the future: " + event.getEventDate());
+        }
+
+        // BR-EVENT-009: el venue debe continuar activo.
+        if (!Boolean.TRUE.equals(event.getVenue().getActive())) {
+            throw new BusinessRuleException("Venue is not active: " + event.getVenue().getCode());
+        }
+
+        event.setStatus(EventStatus.PUBLISHED);
+
+        // P2-D10: save() explícito.
+        return eventMapper.toResponse(eventRepository.save(event));
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Sigue los pasos de §16 (P2-10 F-5a): buscar evento, buscar artista, validar el estado
+     * del evento (BR-EVENT-011), evitar duplicados (BR-EVENT-010), asociar, guardar y devolver.
+     * No se rechazan artistas inactivos (P2-10 F-7a). Se permite en DRAFT, PUBLISHED y SOLD_OUT.
+     */
+    @Override
+    @Transactional
+    public EventResponse addArtist(String eventCode, Long artistId) {
+        Event event = findEventOrThrow(eventCode);
+
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new ResourceNotFoundException("Artist not found: " + artistId));
+
+        // BR-EVENT-011: no se agregan artistas a eventos CANCELLED o FINISHED.
+        if (event.getStatus() == EventStatus.CANCELLED || event.getStatus() == EventStatus.FINISHED) {
+            throw new BusinessRuleException(
+                    "Artists cannot be added to " + event.getStatus() + " events: " + eventCode);
+        }
+
+        // BR-EVENT-010: contains usa equals por id de Artist (P1-D4).
+        if (event.getArtists().contains(artist)) {
+            throw new BusinessRuleException(
+                    "Artist already associated with event " + eventCode + ": " + artist.getStageName());
+        }
+
+        event.addArtist(artist);
+
+        // P2-D10: save() explícito.
+        return eventMapper.toResponse(eventRepository.save(event));
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Reutiliza la consulta exacta {@code findByArtistStageName} (P1-D12, P2-10 F-2a, F-4a)
+     * y filtra aquí los PUBLISHED (P2-D15 / F-1a). No añade orden. Un artista sin eventos, o
+     * inexistente, produce una lista vacía (F-3a).
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<EventSummaryResponse> findByArtist(String stageName) {
+        return eventRepository.findByArtistStageName(stageName)
+                .stream()
+                .filter(event -> event.getStatus() == EventStatus.PUBLISHED)
+                .map(eventMapper::toSummary)
+                .toList();
+    }
+
+    /** Busca el evento o lanza {@code ResourceNotFoundException} (V-2a). Lo usan publish y addArtist. */
+    private Event findEventOrThrow(String eventCode) {
+        return eventRepository.findByEventCode(eventCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + eventCode));
     }
 }
