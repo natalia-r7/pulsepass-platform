@@ -27,14 +27,15 @@ import java.time.Period;
 import java.util.List;
 
 /**
- * Implementación de {@link TicketService}, parte 1 (PRD Servicios §21–§28, §38, §39; P2-13).
+ * Implementación de {@link TicketService} (PRD Servicios §21–§31, §38, §39). Parte 1 en P2-13
+ * ({@code purchase} y consultas); parte 2 en P2-14 ({@code cancel} y {@code markAsUsed}).
  *
  * <ul>
  *   <li>Dependencias {@code final} recibidas por constructor (SRV-002, NFR-002). El precio lo
  *       calcula {@link TicketPricingStrategy} (§28, P2-12) y el código lo genera
  *       {@link TicketCodeGenerator} (P2-D3, TK-4).</li>
- *   <li>{@code purchase} es escritura ({@code @Transactional}); las consultas son
- *       {@code readOnly} (SRV-004, §38, P2-D14).</li>
+ *   <li>{@code purchase}, {@code cancel} y {@code markAsUsed} son escrituras
+ *       ({@code @Transactional}); las consultas son {@code readOnly} (SRV-004, §38, P2-D14).</li>
  *   <li>Solo se aplican reglas de negocio; la validación estructural pertenece a Bean
  *       Validation en la capa de Controladores (P2-D18).</li>
  *   <li>La conversión a DTO la hace {@link TicketMapper} (NFR-004).</li>
@@ -147,9 +148,7 @@ public class TicketServiceImpl implements TicketService {
     @Override
     @Transactional(readOnly = true)
     public TicketResponse findByCode(String ticketCode) {
-        return ticketRepository.findByTicketCode(ticketCode)
-                .map(ticketMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found: " + ticketCode));
+        return ticketMapper.toResponse(findTicketOrThrow(ticketCode));
     }
 
     /** {@inheritDoc} Conserva el orden del repositorio (P2-D7). No valida el usuario (TK-7). */
@@ -170,6 +169,66 @@ public class TicketServiceImpl implements TicketService {
                 .stream()
                 .map(ticketMapper::toResponse)
                 .toList();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Orden: existencia, estado (BR-TICKET-010/011) y fecha (BR-TICKET-012), según la
+     * numeración del PRD (P2-14 TC-2). RESERVED también se rechaza: solo PAID es cancelable
+     * (TC-5). No se valida el estado del evento (TC-3) ni se modifica (TC-1 / P2-D16). Mensajes
+     * según TC-4; el de fecha reutiliza el de {@code create} y {@code purchase} (E-5a).
+     */
+    @Override
+    @Transactional
+    public TicketResponse cancel(String ticketCode) {
+        Ticket ticket = findTicketOrThrow(ticketCode);
+
+        // BR-TICKET-010/011: solo un ticket PAID puede cancelarse (no USED, CANCELLED ni RESERVED).
+        if (ticket.getStatus() != TicketStatus.PAID) {
+            throw new BusinessRuleException("Only PAID tickets can be cancelled: " + ticketCode);
+        }
+
+        // BR-TICKET-012 / P2-D20: el evento no debe haber ocurrido ni estar ocurriendo;
+        // comparación estricta (P2-D4): la igualdad con ahora se rechaza.
+        LocalDateTime eventDate = ticket.getEvent().getEventDate();
+        if (!eventDate.isAfter(LocalDateTime.now(clock))) {
+            throw new BusinessRuleException("Event date must be in the future: " + eventDate);
+        }
+
+        ticket.setStatus(TicketStatus.CANCELLED);
+
+        // P2-D10: save() explícito.
+        return ticketMapper.toResponse(ticketRepository.save(ticket));
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>BR-TICKET-013 cubre BR-TICKET-014: un ticket CANCELLED no es PAID. También se rechazan
+     * USED (segundo uso) y RESERVED (TC-5). Sin restricciones de fecha (P2-D19) ni del estado del
+     * evento (TC-3). Mensaje según TC-4.
+     */
+    @Override
+    @Transactional
+    public TicketResponse markAsUsed(String ticketCode) {
+        Ticket ticket = findTicketOrThrow(ticketCode);
+
+        // BR-TICKET-013/014: solo un ticket PAID puede marcarse como usado.
+        if (ticket.getStatus() != TicketStatus.PAID) {
+            throw new BusinessRuleException("Only PAID tickets can be used: " + ticketCode);
+        }
+
+        ticket.setStatus(TicketStatus.USED);
+
+        // P2-D10: save() explícito.
+        return ticketMapper.toResponse(ticketRepository.save(ticket));
+    }
+
+    /** Busca el ticket o lanza {@code ResourceNotFoundException} (TK-6, TC-6). */
+    private Ticket findTicketOrThrow(String ticketCode) {
+        return ticketRepository.findByTicketCode(ticketCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found: " + ticketCode));
     }
 
     /**

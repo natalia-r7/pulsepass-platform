@@ -6,10 +6,10 @@ import com.pulsepass.dto.response.TicketResponse;
 import java.util.List;
 
 /**
- * Contrato de tickets (PRD Servicios §21, FR-SVC-013..016).
+ * Contrato de tickets (PRD Servicios §21, FR-SVC-013..018).
  *
- * <p>Parte 1 (P2-13): compra y consultas. {@code cancel} y {@code markAsUsed} (FR-SVC-017..018)
- * se agregan en P2-14 (TK-9). Devuelve DTO, nunca la entidad {@code Ticket} (SRV-001).
+ * <p>Parte 1 (P2-13): compra y consultas. Parte 2 (P2-14): {@code cancel} y {@code markAsUsed}.
+ * Devuelve DTO, nunca la entidad {@code Ticket} (SRV-001).
  */
 public interface TicketService {
 
@@ -41,4 +41,23 @@ public interface TicketService {
 
     /** Solo los tickets PAID de un evento; lista vacía si no hay (FR-SVC-016, P2-13 TK-7). */
     List<TicketResponse> findPaidTicketsByEvent(String eventCode);
+
+    /**
+     * Cancela un ticket: PAID → CANCELLED (FR-SVC-017, BR-TICKET-010..012). No modifica el
+     * estado del evento, aunque esté SOLD_OUT (P2-D16 / P2-14 TC-1).
+     *
+     * @throws com.pulsepass.exception.ResourceNotFoundException si el ticket no existe
+     * @throws com.pulsepass.exception.BusinessRuleException si el ticket no está PAID, o si la
+     *         fecha del evento no es estrictamente posterior a ahora (P2-D20)
+     */
+    TicketResponse cancel(String ticketCode);
+
+    /**
+     * Marca un ticket como usado: PAID → USED (FR-SVC-018, BR-TICKET-013..014). Sin
+     * restricciones de fecha (P2-D19).
+     *
+     * @throws com.pulsepass.exception.ResourceNotFoundException si el ticket no existe
+     * @throws com.pulsepass.exception.BusinessRuleException si el ticket no está PAID
+     */
+    TicketResponse markAsUsed(String ticketCode);
 }

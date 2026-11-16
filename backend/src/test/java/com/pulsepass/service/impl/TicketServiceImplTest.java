@@ -33,6 +33,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.pulsepass.service.ServiceFixtures.CMF_2026_EVENT_DATE;
 import static com.pulsepass.service.ServiceFixtures.andrea;
@@ -54,8 +55,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Pruebas unitarias de {@link TicketServiceImpl}, parte 1 (PRD Servicios §21–§28, §45, §48;
- * TEST-TICKET-001..008; AC-004..009; P2-13).
+ * Pruebas unitarias de {@link TicketServiceImpl} (PRD Servicios §21–§31, §45, §48). Parte 1
+ * (P2-13): TEST-TICKET-001..008, AC-004..009. Parte 2 (P2-14): TEST-TICKET-009..012,
+ * AC-010..011.
  *
  * <p>Servicio real; repositorios, mapper, estrategia de precios y generador de códigos simulados
  * con Mockito (§42, V-1a, TP-8, TK-4). Sin Spring, sin PostgreSQL y sin Testcontainers
@@ -587,6 +589,211 @@ class TicketServiceImplTest {
         verify(eventRepository, never()).findByEventCode(anyString());
     }
 
+    // ---------------------------------------------------------------- cancel (P2-14)
+
+    @Test
+    @DisplayName("TEST-TICKET-009 / BR-TICKET-010: cancelar un ticket PAID antes del evento lo deja CANCELLED; el mapper recibe el ticket devuelto por save()")
+    void cancelChangesPaidTicketToCancelled() {
+        // ARRANGE
+        Event event = publishedEvent();
+        Ticket ticket = existingTicket(CODE, event);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+        AtomicReference<Ticket> returnedBySave = stubSaveReturningCopy();
+        TicketResponse expected = ticketResponseOf(CODE, TicketType.VIP, ticket.getUser(), event);
+        when(ticketMapper.toResponse(any(Ticket.class))).thenReturn(expected);
+
+        // ACT
+        TicketResponse response = ticketService.cancel(CODE);
+
+        // ASSERT
+        Ticket saved = captureSavedTicket();
+        assertThat(saved).isSameAs(ticket);
+        assertThat(saved.getStatus()).isEqualTo(TicketStatus.CANCELLED);
+        assertThat(saved.getPrice()).isEqualByComparingTo(TEST_PRICE);
+        assertThat(saved.getPurchaseDate()).isEqualTo(NOW);
+        assertThat(saved.getEvent()).isSameAs(event);
+        assertMapperReceived(returnedBySave.get());
+        assertThat(response).isEqualTo(expected);
+        verify(eventRepository, never()).save(any());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = TicketStatus.class, names = "PAID", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("TEST-TICKET-010 / AC-011 / BR-TICKET-010/011 / TC-5: no se cancelan tickets USED, CANCELLED ni RESERVED")
+    void cancelThrowsWhenTicketIsNotPaid(TicketStatus status) {
+        // ARRANGE
+        Ticket ticket = existingTicket(CODE, publishedEvent());
+        ticket.setStatus(status);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+
+        // ACT + ASSERT
+        assertThatThrownBy(() -> ticketService.cancel(CODE))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Only PAID tickets can be cancelled: " + CODE);
+        assertThat(ticket.getStatus()).isEqualTo(status);
+        verifyNothingSaved();
+    }
+
+    @Test
+    @DisplayName("BR-TICKET-012: no se cancela un ticket de un evento que ya ocurrió")
+    void cancelThrowsWhenEventDateIsInThePast() {
+        // ARRANGE
+        Event event = publishedEvent();
+        LocalDateTime yesterday = NOW.minusDays(1); // DATO DE PRUEBA
+        event.setEventDate(yesterday);
+        Ticket ticket = existingTicket(CODE, event);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+
+        // ACT + ASSERT
+        assertThatThrownBy(() -> ticketService.cancel(CODE))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Event date must be in the future: " + yesterday);
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.PAID);
+        verifyNothingSaved();
+    }
+
+    @Test
+    @DisplayName("BR-TICKET-012 / P2-D20: si la fecha del evento es exactamente ahora, no se cancela")
+    void cancelThrowsWhenEventDateEqualsNow() {
+        // ARRANGE
+        Event event = publishedEvent();
+        event.setEventDate(NOW); // DATO DE PRUEBA: límite
+        Ticket ticket = existingTicket(CODE, event);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+
+        // ACT + ASSERT
+        assertThatThrownBy(() -> ticketService.cancel(CODE))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Event date must be in the future: " + NOW);
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.PAID);
+        verifyNothingSaved();
+    }
+
+    @Test
+    @DisplayName("FR-SVC-017: cancelar un ticket inexistente lanza ResourceNotFoundException")
+    void cancelThrowsWhenTicketDoesNotExist() {
+        // ARRANGE
+        when(ticketRepository.findByTicketCode("TKT-000000")).thenReturn(Optional.empty()); // DATO DE PRUEBA
+
+        // ACT + ASSERT
+        assertThatThrownBy(() -> ticketService.cancel("TKT-000000"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Ticket not found: TKT-000000");
+        verify(ticketMapper, never()).toResponse(any());
+        verifyNothingSaved();
+    }
+
+    @Test
+    @DisplayName("TC-2: el estado se valida antes que la fecha (ticket USED de un evento pasado → mensaje de «solo PAID»)")
+    void cancelValidatesStatusBeforeEventDate() {
+        // ARRANGE
+        Event event = publishedEvent();
+        event.setEventDate(NOW.minusDays(1)); // DATO DE PRUEBA
+        Ticket ticket = existingTicket(CODE, event);
+        ticket.setStatus(TicketStatus.USED);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+
+        // ACT + ASSERT
+        assertThatThrownBy(() -> ticketService.cancel(CODE))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Only PAID tickets can be cancelled: " + CODE);
+        verifyNothingSaved();
+    }
+
+    @Test
+    @DisplayName("TC-1 / P2-D16: cancelar en un evento SOLD_OUT se permite y el evento sigue SOLD_OUT, sin guardarse")
+    void cancelInSoldOutEventDoesNotChangeEvent() {
+        // ARRANGE
+        Event event = publishedEvent();
+        event.setStatus(EventStatus.SOLD_OUT);
+        Ticket ticket = existingTicket(CODE, event);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // ACT
+        ticketService.cancel(CODE);
+
+        // ASSERT
+        assertThat(captureSavedTicket().getStatus()).isEqualTo(TicketStatus.CANCELLED);
+        assertThat(event.getStatus()).isEqualTo(EventStatus.SOLD_OUT);
+        verify(eventRepository, never()).save(any());
+    }
+
+    // ---------------------------------------------------------------- markAsUsed (P2-14)
+
+    @Test
+    @DisplayName("TEST-TICKET-011 / AC-010 / BR-TICKET-013: un ticket PAID pasa a USED; el mapper recibe el ticket devuelto por save()")
+    void markAsUsedChangesPaidTicketToUsed() {
+        // ARRANGE
+        Event event = publishedEvent();
+        Ticket ticket = existingTicket(CODE, event);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+        AtomicReference<Ticket> returnedBySave = stubSaveReturningCopy();
+        TicketResponse expected = ticketResponseOf(CODE, TicketType.VIP, ticket.getUser(), event);
+        when(ticketMapper.toResponse(any(Ticket.class))).thenReturn(expected);
+
+        // ACT
+        TicketResponse response = ticketService.markAsUsed(CODE);
+
+        // ASSERT
+        Ticket saved = captureSavedTicket();
+        assertThat(saved).isSameAs(ticket);
+        assertThat(saved.getStatus()).isEqualTo(TicketStatus.USED);
+        assertThat(saved.getPrice()).isEqualByComparingTo(TEST_PRICE);
+        assertThat(saved.getPurchaseDate()).isEqualTo(NOW);
+        assertMapperReceived(returnedBySave.get());
+        assertThat(response).isEqualTo(expected);
+        verify(eventRepository, never()).save(any());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = TicketStatus.class, names = "PAID", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("TEST-TICKET-012 / BR-TICKET-013/014 / TC-5: no se marcan como usados tickets CANCELLED, USED (segundo uso) ni RESERVED")
+    void markAsUsedThrowsWhenTicketIsNotPaid(TicketStatus status) {
+        // ARRANGE
+        Ticket ticket = existingTicket(CODE, publishedEvent());
+        ticket.setStatus(status);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+
+        // ACT + ASSERT
+        assertThatThrownBy(() -> ticketService.markAsUsed(CODE))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Only PAID tickets can be used: " + CODE);
+        assertThat(ticket.getStatus()).isEqualTo(status);
+        verifyNothingSaved();
+    }
+
+    @Test
+    @DisplayName("FR-SVC-018: marcar como usado un ticket inexistente lanza ResourceNotFoundException")
+    void markAsUsedThrowsWhenTicketDoesNotExist() {
+        // ARRANGE
+        when(ticketRepository.findByTicketCode("TKT-000000")).thenReturn(Optional.empty()); // DATO DE PRUEBA
+
+        // ACT + ASSERT
+        assertThatThrownBy(() -> ticketService.markAsUsed("TKT-000000"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Ticket not found: TKT-000000");
+        verify(ticketMapper, never()).toResponse(any());
+        verifyNothingSaved();
+    }
+
+    @Test
+    @DisplayName("P2-D19: un ticket PAID de un evento que ya ocurrió sí puede marcarse como usado")
+    void markAsUsedHasNoDateRestriction() {
+        // ARRANGE
+        Event event = publishedEvent();
+        event.setEventDate(NOW.minusDays(1)); // DATO DE PRUEBA
+        Ticket ticket = existingTicket(CODE, event);
+        when(ticketRepository.findByTicketCode(CODE)).thenReturn(Optional.of(ticket));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // ACT
+        ticketService.markAsUsed(CODE);
+
+        // ASSERT
+        assertThat(captureSavedTicket().getStatus()).isEqualTo(TicketStatus.USED);
+    }
+
     // ---------------------------------------------------------------- Auxiliares
 
     /** CMF-2026 en VEN-SMR-01 (capacidad 3), ya publicado (AC-002). */
@@ -624,6 +831,30 @@ class TicketServiceImplTest {
         ArgumentCaptor<Ticket> captor = ArgumentCaptor.forClass(Ticket.class);
         verify(ticketRepository).save(captor.capture());
         return captor.getValue();
+    }
+
+    /**
+     * Hace que save() devuelva una copia distinta del ticket recibido, para comprobar que el
+     * servicio mapea el objeto que devuelve save() y no el original (P2-14).
+     */
+    private AtomicReference<Ticket> stubSaveReturningCopy() {
+        AtomicReference<Ticket> returned = new AtomicReference<>();
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
+            Ticket original = invocation.getArgument(0);
+            Ticket copy = new Ticket(original.getTicketCode(), original.getType(), original.getPrice(),
+                    original.getStatus(), original.getUser(), original.getEvent());
+            copy.setPurchaseDate(original.getPurchaseDate());
+            returned.set(copy);
+            return copy;
+        });
+        return returned;
+    }
+
+    /** El mapper recibió exactamente esa instancia (identidad, no equals). */
+    private void assertMapperReceived(Ticket expectedInstance) {
+        ArgumentCaptor<Ticket> captor = ArgumentCaptor.forClass(Ticket.class);
+        verify(ticketMapper).toResponse(captor.capture());
+        assertThat(captor.getValue()).isSameAs(expectedInstance);
     }
 
     /** §50: en los caminos inválidos no se guarda ni el ticket ni el evento. */
