@@ -3,6 +3,7 @@ package com.pulsepass.repository;
 import com.pulsepass.domain.Venue;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -13,4 +14,7 @@ public interface VenueRepository extends JpaRepository<Venue, Long> {
 
     /** Venue por su código de negocio (FR-VEN-001, UC-01, AC-001). */
     Optional<Venue> findByCode(String code);
+
+    /** Venues activos ordenados por nombre (PRD Servicios §32, BR-VENUE-002, P2-D6). */
+    List<Venue> findByActiveTrueOrderByNameAsc();
 }

@@ -20,6 +20,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     /** Evento por su código de negocio (§14, AC-002). */
     Optional<Event> findByEventCode(String eventCode);
 
+    /** Indica si ya existe un evento con ese código (PRD Servicios §32, BR-EVENT-001, P2-D6). */
+    boolean existsByEventCode(String eventCode);
+
     /** Eventos en un estado, en orden cronológico ascendente (FR-EVT-005, AC-006). */
     List<Event> findByStatusOrderByEventDateAsc(EventStatus status);
 
