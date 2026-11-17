@@ -1,4 +1,4 @@
-# PulsePass — Backend · Fases 1 (Persistencia) y 2 (Servicios)
+# PulsePass — Backend · Fases 1 (Persistencia), 2 (Servicios) y 3 (Controladores REST)
 
 Backend de PulsePass, plataforma de gestión y venta de entradas para eventos. Se implementa por
 fases, cada una según su PRD dentro de `docs/proyecto Pulsepass.pdf`:
@@ -8,23 +8,31 @@ fases, cada una según su PRD dentro de `docs/proyecto Pulsepass.pdf`:
 * **Fase 2 — Servicios** (PRD de la Capa de Servicios): contratos `Service`, DTO, mappers
   MapStruct, excepciones de negocio, reglas de negocio, transacciones y pruebas unitarias con
   Mockito.
+* **Fase 3 — Controladores REST** (PRD de la Capa de Controladores REST): 20 endpoints sobre los
+  servicios, validación de entrada con Bean Validation, contrato uniforme de errores y pruebas
+  de contrato HTTP con `@WebMvcTest` y MockMvc.
 
-Siguen fuera de alcance: la API REST (Fase 3, Controladores), la seguridad (Fase 4) y el frontend.
+Siguen fuera de alcance: la seguridad (Fase 4: autenticación, roles y propiedad de los recursos)
+y el frontend.
 
 ## Estado de las fases
 
 | Fase | PRD | Estado | Cierre |
 |---|---|---|---|
 | 1 — Persistencia | Persistencia | Cerrada | Commit `35b3ac6`, etiqueta `fase-1-persistencia` |
-| 2 — Servicios | Capa de Servicios | En cierre (P2-15) | Suite completa verde sobre `a26799c`; revisión del [DoD](#definition-of-done-de-la-fase-2) en este documento |
+| 2 — Servicios | Capa de Servicios | Cerrada | Commit `c863210`, etiqueta `fase-2-servicios`; [DoD](#definition-of-done-de-la-fase-2) en este documento |
+| 3 — Controladores REST | Capa de Controladores REST | En cierre (P3-10) | Suite completa verde sobre `7e1f386`; [DoD](#definition-of-done-de-la-fase-3) en este documento |
 
 ## Tecnologías
 
 | Tecnología | Versión |
 |---|---|
 | Java | 21 |
-| Spring Boot | 4.1.2 |
+| Spring Boot | 4.1.2 (Spring Framework 7.0.10) |
 | Maven (mediante Maven Wrapper `./mvnw`) | 3.10.0 |
+| Spring MVC (Fase 3) | `spring-webmvc` 7.0.10, con Tomcat embebido 11.0.27 |
+| Bean Validation (Fase 3) | Jakarta Validation 3.1.1, Hibernate Validator 9.1.5.Final |
+| Jackson (Fase 3, JSON) | 3.1.7 (`tools.jackson`) |
 | Spring Data JPA / Hibernate | Hibernate 7.4.13 |
 | PostgreSQL | 17 (imagen `postgres:17`) |
 | Flyway | 12.4.0 |
@@ -38,6 +46,11 @@ No se usa H2 ni Lombok. MapStruct es la única dependencia que agregó la Fase 2
 biblioteca `org.mapstruct:mapstruct` y su procesador de anotaciones en `maven-compiler-plugin`.
 Mockito y `junit-jupiter-params` llegan como dependencias transitivas de
 `spring-boot-starter-data-jpa-test` (a través de `spring-boot-starter-test`), que ya existía.
+
+La Fase 3 agregó tres starters, con las versiones del BOM de Spring Boot 4.1.2 (P3-D1):
+`spring-boot-starter-webmvc` y `spring-boot-starter-validation`, y en pruebas
+`spring-boot-starter-webmvc-test` (`@WebMvcTest` y MockMvc). Jackson, Tomcat y Hibernate
+Validator llegan a través de ellos.
 
 ## Requisitos para ejecutar
 
@@ -55,14 +68,16 @@ backend/
     ├── main/java/com/pulsepass/
     │   ├── PulsepassApplication.java
     │   ├── config/                  ClockConfig: bean Clock con zona America/Bogota (Fase 2)
+    │   ├── controller/              Venue, Artist, User, Event y TicketController (Fase 3)
     │   ├── domain/                  Entidades JPA
     │   │   └── enums/               EventCategory, EventStatus, TicketType, TicketStatus
     │   ├── dto/                     DTO como record (Fase 2)
     │   │   ├── request/             CreateEventRequest, RegisterUserRequest, PurchaseTicketRequest
+    │   │   │                        (con Bean Validation desde la Fase 3)
     │   │   └── response/            VenueResponse, ArtistResponse, UserResponse, EventResponse,
-    │   │                            EventSummaryResponse, TicketResponse
+    │   │                            EventSummaryResponse, TicketResponse; ErrorResponse (Fase 3)
     │   ├── exception/               ResourceNotFoundException, DuplicateResourceException,
-    │   │                            BusinessRuleException (Fase 2)
+    │   │                            BusinessRuleException (Fase 2); GlobalExceptionHandler (Fase 3)
     │   ├── mapper/                  Mappers MapStruct (Fase 2)
     │   ├── repository/              Repositorios Spring Data JPA
     │   └── service/                 Interfaces de servicio, TicketPricingStrategy y
@@ -74,23 +89,36 @@ backend/
     └── test/java/com/pulsepass/
         ├── PulsepassApplicationTests.java
         ├── TestcontainersConfiguration.java
+        ├── FixedClockTestConfiguration.java  Reloj fijo para las pruebas web (Fase 3)
         ├── persistence/             Pruebas de integración y PersistenceFixtures
         ├── mapper/                  Pruebas de los mappers reales (Fase 2)
-        └── service/                 ServiceFixtures (Fase 2)
-            └── impl/                Pruebas unitarias de servicios y componentes (Fase 2)
+        ├── service/                 ServiceFixtures (Fase 2)
+        │   └── impl/                Pruebas unitarias de servicios y componentes (Fase 2)
+        ├── dto/request/             Pruebas de Bean Validation de los request DTO (Fase 3)
+        ├── exception/               GlobalExceptionHandlerTest (Fase 3)
+        └── controller/              Pruebas @WebMvcTest de los controladores y ControllerFixtures (Fase 3)
 ```
 
 ## Arquitectura
 
 ```
-Service (interfaz)  ──►  ServiceImpl (@Service)
-                          ├── Repository (Spring Data JPA)      acceso a datos, sin reglas
-                          ├── Mapper (MapStruct)                Entity → DTO
-                          ├── Clock (ClockConfig)               "ahora" inyectable
-                          ├── TicketPricingStrategy             precio (solo TicketService)
-                          └── TicketCodeGenerator               código de ticket (solo TicketService)
+HTTP ──► Controller (@RestController)        valida el cuerpo (@Valid) y delega   [Fase 3]
+             │                ▲
+             │                └── GlobalExceptionHandler (@RestControllerAdvice)  excepción → ErrorResponse
+             ▼
+         Service (interfaz) ──► ServiceImpl (@Service)                            [Fase 2]
+                                 ├── Repository (Spring Data JPA)      acceso a datos, sin reglas
+                                 ├── Mapper (MapStruct)                Entity → DTO
+                                 ├── Clock (ClockConfig)               "ahora" inyectable
+                                 ├── TicketPricingStrategy             precio (solo TicketService)
+                                 └── TicketCodeGenerator               código de ticket (solo TicketService)
 ```
 
+* Los controladores solo traducen HTTP a llamadas de servicio: no acceden a repositorios, no
+  contienen reglas de negocio y no exponen entidades JPA (CTRL-001..004, CTRL-009). La
+  validación estructural es suya (Bean Validation); las reglas de negocio, del servicio (§11.4).
+* Los errores se traducen en un único punto, `GlobalExceptionHandler`; los controladores no
+  tienen `try/catch` (CTRL-007, §15).
 * Los servicios reciben y devuelven DTO; nunca exponen entidades JPA (SRV-001).
 * Cada servicio tiene interfaz e implementación en `service.impl` (SRV-003), con dependencias
   `final` inyectadas por constructor (SRV-002, NFR-002).
@@ -139,8 +167,8 @@ cambio va en una versión nueva.
 | `V2__insert_initial_artists.sql` | Los 5 artistas iniciales: Solar Beat, Neon Waves, Caribbean Sound, Ocean Drive y Digital Pulse |
 | `V3__add_streaming_url_to_event.sql` | Columna opcional `events.streaming_url VARCHAR(500)` (FR-EVT-006) |
 
-La Fase 2 no agregó ni modificó migraciones. La migración V4 (credenciales y roles) pertenece a la
-Fase 4 (Seguridad).
+Las Fases 2 y 3 no agregaron ni modificaron migraciones. La migración V4 (credenciales y roles)
+pertenece a la Fase 4 (Seguridad).
 
 ### Restricciones de V1
 
@@ -230,7 +258,9 @@ Son 5 servicios y 20 operaciones. Cada operación declara su propio `@Transactio
   (P2-D1). `EventResponse.artists` es `List<ArtistResponse>`. `EventResponse` no incluye
   `streamingUrl`, porque §13 no lo pide (P2-04).
 * `PurchaseTicketRequest` no incluye precio: el precio lo define el sistema (§22).
-* Los DTO no llevan Bean Validation: la validación estructural corresponde a la Fase 3 (P2-D18).
+* Los servicios no validan la estructura de los DTO (P2-D18). En la Fase 2 los request DTO no
+  llevaban Bean Validation; desde la Fase 3 (P3-03) la llevan y la aplican los controladores con
+  `@Valid` (ver [Validación de entrada](#validación-de-entrada)).
 * **5 mappers MapStruct** con `componentModel = "spring"` y `unmappedTargetPolicy = ERROR`
   (P2-05 D-E1): si un campo del DTO queda sin origen, la compilación falla. `EventMapper` usa
   `ArtistMapper` inyectado por constructor (P2-05 D-A1). `TicketMapper` aplana `user.email`,
@@ -238,7 +268,7 @@ Son 5 servicios y 20 operaciones. Cada operación declara su propio `@Transactio
 
 ## Excepciones y mensajes
 
-| Excepción | Uso (PRD §35) | Código HTTP previsto (PRD de Controladores §13, Fase 3) |
+| Excepción | Uso (PRD §35) | Código HTTP (PRD de Controladores §14; implementado en la Fase 3) |
 |---|---|---|
 | `ResourceNotFoundException` | El recurso no existe | 404 |
 | `DuplicateResourceException` | Conflicto de unicidad | 409 |
@@ -328,6 +358,131 @@ es futura. Las pruebas usan `Clock.fixed(...)` y no dependen del día de ejecuci
 
 ---
 
+# Fase 3 — Controladores REST
+
+## Endpoints
+
+Los 20 endpoints del PRD de Controladores §8, uno por cada método público de servicio (§9). Todos
+devuelven `ResponseEntity` con DTO, nunca entidades. Los cuerpos y las respuestas son JSON.
+
+| Método | Ruta | Servicio | Éxito | Errores |
+|---|---|---|---|---|
+| GET | `/api/venues/{code}` | `VenueService.findByCode` | 200 `VenueResponse` | 404 |
+| GET | `/api/venues/active` | `VenueService.findActiveVenues` | 200 `List<VenueResponse>` | — |
+| POST | `/api/events` | `EventService.create` | **201** `EventResponse` | 400, 404 (venue), 409 |
+| GET | `/api/events/{eventCode}` | `EventService.findByCode` | 200 `EventResponse` | 404 |
+| GET | `/api/events/published` | `EventService.findPublishedEvents` | 200 `List<EventSummaryResponse>` | — |
+| PATCH | `/api/events/{eventCode}/publish` | `EventService.publish` | 200 `EventResponse` | 404, 409 |
+| POST | `/api/events/{eventCode}/artists/{artistId}` | `EventService.addArtist` | **200** `EventResponse` (§8.2: no es una creación) | 400 (`artistId` no numérico), 404, 409 |
+| GET | `/api/events/by-artist?stageName=...` | `EventService.findByArtist` | 200 `List<EventSummaryResponse>` | 400 (sin `stageName`) |
+| GET | `/api/artists/{id}` | `ArtistService.findById` | 200 `ArtistResponse` | 400 (`id` no numérico), 404 |
+| GET | `/api/artists/by-stage-name?stageName=...` | `ArtistService.findByStageName` | 200 `ArtistResponse` | 400 (sin `stageName`), 404 |
+| GET | `/api/artists/active` | `ArtistService.findActiveArtists` | 200 `List<ArtistResponse>` | — |
+| POST | `/api/users` | `UserService.register` | **201** `UserResponse` | 400, 409 |
+| GET | `/api/users/by-email?email=...` | `UserService.findByEmail` | 200 `UserResponse` | 400 (sin `email`), 404 |
+| GET | `/api/users/by-username?username=...` | `UserService.findByUsername` | 200 `UserResponse` | 400 (sin `username`), 404 |
+| POST | `/api/tickets` | `TicketService.purchase` | **201** `TicketResponse` | 400, 404 (usuario o evento), 409, 500 (TK-5) |
+| GET | `/api/tickets/{ticketCode}` | `TicketService.findByCode` | 200 `TicketResponse` | 404 |
+| GET | `/api/tickets/by-user?email=...` | `TicketService.findByUserEmail` | 200 `List<TicketResponse>` | 400 (sin `email`) |
+| GET | `/api/events/{eventCode}/tickets/paid` | `TicketService.findPaidTicketsByEvent` | 200 `List<TicketResponse>` | — |
+| PATCH | `/api/tickets/{ticketCode}/cancel` | `TicketService.cancel` | 200 `TicketResponse` | 404, 409 |
+| PATCH | `/api/tickets/{ticketCode}/use` | `TicketService.markAsUsed` | 200 `TicketResponse` | 404, 409 |
+
+La columna «Errores» recoge los errores específicos de cada endpoint: los de entrada (400) y los
+de dominio que lanza su servicio (404 y 409). Además, cualquier endpoint puede responder 500 si
+ocurre una excepción inesperada, y los errores de Spring MVC con estado 5xx pueden conservar su
+estado original (por ejemplo, 503). En ambos casos `GlobalExceptionHandler` responde con
+`ErrorResponse` y el mensaje genérico `Unexpected error` (ver
+[Contrato de errores](#contrato-de-errores)).
+
+Comportamientos del contrato:
+
+* Los 201 no incluyen la cabecera `Location`, porque el PRD no la pide (P3-D8).
+* Los `PATCH` y `POST /api/events/{eventCode}/artists/{artistId}` no declaran cuerpo; si se envía
+  uno, se ignora (comportamiento de P3-08, confirmado para los tickets en TKC-5).
+* `GET /api/events/{eventCode}/tickets/paid` está en `TicketController`, que usa el prefijo
+  `/api` (P3-D2, TKC-1).
+* Las listas vacías responden 200 con `[]`. `GET /api/tickets/by-user` y
+  `GET /api/events/{eventCode}/tickets/paid` también responden `[]` si el usuario o el evento no
+  existen (P2-13 TK-7).
+* Los parámetros de ruta y de consulta no se validan con Bean Validation (P3-D9). Spring MVC sí
+  los convierte al tipo declarado (por ejemplo, `id` y `artistId` a `Long`): un valor
+  incompatible, o un parámetro obligatorio ausente, responde 400 antes de llegar al servicio. Los
+  valores que sí se convierten llegan al servicio sin más cambios; ignorar mayúsculas en emails y
+  nombres artísticos lo hace el servicio.
+* Las rutas literales (`/active`, `/published`, `/by-artist`, `/by-stage-name`, `/by-user`)
+  tienen prioridad sobre las rutas con variable.
+
+## Validación de entrada
+
+Los tres endpoints con cuerpo validan el request con `@Valid` antes de llamar al servicio
+(§11, CTRL-005). Una petición inválida responde 400 y **no llega al servicio** (QT-CTRL-007).
+Los mínimos son los del PRD (§11.1–§11.3); las longitudes máximas son las de las columnas de V1
+(P3-D4); los mensajes están en inglés (P3-D5).
+
+| DTO | Campo | Validación | Origen |
+|---|---|---|---|
+| `CreateEventRequest` | `eventCode`, `venueCode` | `@NotBlank`, máx. 30 | PRD / V1 |
+| | `name` | `@NotBlank`, máx. 150 | PRD / V1 |
+| | `description` | Opcional, máx. 500 | PRD («longitud máxima definida») / V1-4 |
+| | `category`, `eventDate` | `@NotNull` | PRD |
+| | `minimumAge` | `@NotNull`, `@Min(0)` | PRD |
+| `RegisterUserRequest` | `username` | `@NotBlank`, máx. 50 | PRD / V1 |
+| | `email` | `@NotBlank`, `@Email`, máx. 254 | PRD / V1 |
+| | `firstName`, `lastName` | `@NotBlank`, máx. 100 | PRD / V1 |
+| | `phone` / `city` | Opcionales, máx. 30 / 100 | V1 |
+| | `birthDate` | `@NotNull` | PRD |
+| `PurchaseTicketRequest` | `userEmail` | `@NotBlank`, `@Email`, máx. 254 | PRD / V1 |
+| | `eventCode` | `@NotBlank`, máx. 30 | PRD / V1 |
+| | `type` | `@NotNull` | PRD |
+
+Las reglas de negocio no se validan en el controlador: que la fecha sea futura, la unicidad, que
+los recursos existan, la edad, la capacidad y las transiciones de estado son del servicio
+(§11.4).
+
+## Contrato de errores
+
+Todos los errores usan `ErrorResponse` (§13, NFR-CTRL-003):
+
+```json
+{
+  "timestamp": "2026-11-15T12:00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed",
+  "details": { "eventCode": "Event code is required" }
+}
+```
+
+* `timestamp`: hora local de America/Bogota del `Clock` inyectado, truncada a segundos (P3-D7).
+* `error`: la frase estándar del estado HTTP.
+* `details`: campo → mensaje en los errores de validación; si un campo tiene varios errores, sus
+  mensajes se unen en orden alfabético con `; ` (P3-D6). En los demás errores es `{}`.
+
+`GlobalExceptionHandler` (`@RestControllerAdvice`) es el único punto de traducción (§15). Extiende
+`ResponseEntityExceptionHandler` para que también los errores propios de Spring MVC usen
+`ErrorResponse`, con su estado HTTP real (P3-D3).
+
+| Excepción o condición | HTTP | `message` | Origen |
+|---|---|---|---|
+| `MethodArgumentNotValidException` (Bean Validation) | 400 | `Validation failed`, con `details` | PRD §13, §14 |
+| `HttpMessageNotReadableException` (JSON mal formado, enum o fecha ilegibles) | 400 | `Malformed JSON request` | PRD §14 / P3-D5 |
+| `MissingServletRequestParameterException` | 400 | `Required parameter '<nombre>' is missing` | P3-D3 / P3-D5 |
+| `TypeMismatchException` (por ejemplo, `id` no numérico) | 400 | `Invalid value for parameter '<nombre>'` | P3-D3 / P3-D5 |
+| `ResourceNotFoundException` | 404 | El del servicio | PRD §14 |
+| Ruta inexistente | 404 | `No endpoint found for <MÉTODO> <ruta>` | P3-D3 / P3-D5 |
+| `HttpRequestMethodNotSupportedException` | 405, con `Allow` | `HTTP method '<MÉTODO>' is not supported for this endpoint` | P3-D3 / P3-D5 |
+| `HttpMediaTypeNotSupportedException` | 415, con `Accept` | `Content type '<tipo/subtipo>' is not supported` | P3-D3 / P3-D5 |
+| `DuplicateResourceException` | 409 | El del servicio | PRD §14 |
+| `BusinessRuleException` | 409 | El del servicio | PRD §14 |
+| Cualquier otra excepción, o un error MVC con estado 5xx | 500 (o el 5xx original) | `Unexpected error`, con `details` vacío | PRD §14 / P3-D10 |
+
+Una respuesta 5xx nunca incluye el mensaje, la clase ni la traza de la excepción: solo se
+registran en el log del servidor (NFR-CTRL-007). `DataIntegrityViolationException` e
+`IllegalStateException` (TK-5) responden 500 (P3-D10).
+
+---
+
 # Pruebas
 
 ## Cómo ejecutarlas
@@ -350,9 +505,15 @@ Las pruebas unitarias de la Fase 2 no necesitan Docker:
 ./mvnw test -Dtest='*MapperTest,*ServiceImplTest,TicketPricingStrategyImplTest,TicketCodeGeneratorImplTest'
 ```
 
+Las pruebas web y de validación de la Fase 3 tampoco necesitan Docker:
+
+```bash
+./mvnw test -Dtest='*ControllerTest,GlobalExceptionHandlerTest,*RequestValidationTest'
+```
+
 Maven Surefire ejecuta tanto las clases `*Test` como las `*IT`, por lo que `./mvnw clean test`
 incluye todas las pruebas de integración (QT-010). La configuración de Surefire no se modificó en
-la Fase 2.
+las Fases 2 ni 3.
 
 ## Qué cubren
 
@@ -362,7 +523,8 @@ Las ocho clases del paquete `persistence` usan `@DataJpaTest` con
 `@Import(TestcontainersConfiguration.class)`: Flyway construye el esquema sobre PostgreSQL 17 y
 Hibernate lo valida antes de ejecutar las pruebas. `PulsepassApplicationTests` usa
 `@SpringBootTest` con la misma configuración y comprueba que arranca la aplicación completa,
-incluidos los servicios, los mappers y el bean `Clock`.
+incluidos los servicios, los mappers, el bean `Clock` y, desde la Fase 3, la capa web
+(controladores y `GlobalExceptionHandler`).
 
 | Clase | Pruebas | Cubre |
 |---|---|---|
@@ -410,6 +572,33 @@ En los caminos inválidos se verifica con `verify(..., never())` que no se llama
 independiente de `PersistenceFixtures` (P2-D12); los valores que §47 no define, incluido el
 usuario Sofía de AC-008 (TK-8), están marcados como `DATO DE PRUEBA`.
 
+### Pruebas web y de validación (Fase 3, sin base de datos)
+
+Siguen PRD §21: la unidad bajo prueba es «petición HTTP → controlador → servicio simulado →
+respuesta HTTP». Las clases de controlador usan `@WebMvcTest(XController.class)`, MockMvc y el
+servicio como `@MockitoBean` (QT-CTRL-002); importan `FixedClockTestConfiguration`, que aporta un
+`Clock` fijo para que el `timestamp` de los errores sea determinista. No usan PostgreSQL,
+Testcontainers ni `@SpringBootTest` (§17, NFR-CTRL-008). Los JSON van escritos como texto
+(P3-D12) y los datos salen de `ControllerFixtures`.
+
+| Clase | Pruebas | Cubre |
+|---|---|---|
+| `CreateEventRequestValidationTest` | 9 | §11.1: obligatorios, `@Min(0)` y longitudes (P3-D4) |
+| `RegisterUserRequestValidationTest` | 11 | §11.2: obligatorios, formato de email y longitudes |
+| `PurchaseTicketRequestValidationTest` | 11 | §11.3: obligatorios, formato de email y longitudes |
+| `GlobalExceptionHandlerTest` | 16 | §13–§16: cada fila de la tabla del contrato de errores, con un controlador de sondeo que solo existe en la prueba |
+| `VenueControllerTest` | 4 | TEST-CTRL-VEN-001..003, AC-CTRL-001..002 |
+| `ArtistControllerTest` | 8 | TEST-CTRL-ART-001..004 |
+| `UserControllerTest` | 12 | TEST-CTRL-USR-001..005, AC-CTRL-007..008 |
+| `EventControllerTest` | 18 | TEST-CTRL-EVT-001..009, AC-CTRL-003..006 |
+| `TicketControllerTest` | 21 | TEST-CTRL-TKT-001..011, AC-CTRL-009..014 |
+
+Cada prueba de controlador comprueba el estado HTTP, el Content-Type, los campos JSON relevantes
+con `jsonPath`, los argumentos que recibe el servicio (`verify`) y, en las peticiones rechazadas
+antes del servicio, que no se le llama (`verify(..., never())`) (QT-CTRL-003..011). Las 32 pruebas
+mínimas de §22 están identificadas por su ID; las demás cubren límites, 404 adicionales y listas
+vacías.
+
 ### Resultados registrados
 
 * **Cierre de la Fase 1:** `./mvnw clean test` terminó con `Tests run: 46, Failures: 0, Errors: 0,
@@ -417,6 +606,9 @@ usuario Sofía de AC-008 (TK-8), están marcados como `DATO DE PRUEBA`.
 * **Cierre de la Fase 2** (2026-11-16, sobre el commit `a26799c`): `./mvnw clean test` terminó con
   `Tests run: 206, Failures: 0, Errors: 0, Skipped: 0` y `BUILD SUCCESS`. De ellas, 62 son de
   integración o arranque (16 nuevas, de `ServiceRepositoryIT`) y 144 unitarias.
+* **Cierre de la Fase 3** (2026-11-16, sobre el commit `7e1f386`): `./mvnw clean test` terminó con
+  `Tests run: 316, Failures: 0, Errors: 0, Skipped: 0` y `BUILD SUCCESS`. Las 110 nuevas son 31 de
+  validación de los request DTO, 16 de `GlobalExceptionHandlerTest` y 63 de los controladores.
 
 ## Avisos esperados en la salida
 
@@ -430,6 +622,7 @@ pruebas pasan.
 | `A Java agent has been loaded dynamically (... byte-buddy-agent-1.18.15.jar)` y `Dynamic loading of agents will be disallowed by default in a future release` | JVM | El mismo agente de Mockito, visto desde la JVM |
 | `Sharing is only supported for boot loader classes because bootstrap classpath has been appended` | JVM | Consecuencia del agente anterior; solo afecta al uso compartido de clases de la JVM |
 | `HHH000247: ErrorCode: 0, SQLState: 23505` / `23514` con `duplicate key value violates unique constraint ...` o `violates check constraint ...` (11 veces) | Hibernate | Las registran las pruebas de integración que violan restricciones **a propósito** para comprobar que PostgreSQL las rechaza |
+| `ERROR ... GlobalExceptionHandler : Unexpected error while processing the request`, con la traza (5 veces) | `GlobalExceptionHandler` | Lo registran a propósito las pruebas que provocan errores 5xx (4 en `GlobalExceptionHandlerTest` y 1 en `TicketControllerTest`). Es el log del servidor; la respuesta HTTP solo dice «Unexpected error» |
 
 ---
 
@@ -499,6 +692,37 @@ CMF-2026, sus tres artistas y los usuarios del escenario).
 | AC-010 | Un ticket `PAID` pasa a `USED` | `TicketServiceImplTest` (TEST-TICKET-011) |
 | AC-011 | Un ticket `USED` no puede cancelarse | `TicketServiceImplTest` (TEST-TICKET-010) |
 
+## Fase 3 — Controladores REST (FR-CTRL → endpoint → TEST-CTRL / AC-CTRL)
+
+Sigue la matriz del PRD de Controladores (§29). Las pruebas indicadas son las mínimas de §22; cada
+clase incluye además las adicionales descritas en [Pruebas](#pruebas-web-y-de-validación-fase-3-sin-base-de-datos).
+
+| Requisito | Endpoint | Servicio | Pruebas mínimas | AC |
+|---|---|---|---|---|
+| FR-CTRL-VEN-001 | `GET /api/venues/{code}` | `VenueService.findByCode` | TEST-CTRL-VEN-001/002 | AC-CTRL-001, 002 |
+| FR-CTRL-VEN-002 | `GET /api/venues/active` | `VenueService.findActiveVenues` | TEST-CTRL-VEN-003 | — |
+| FR-CTRL-EVT-001 | `POST /api/events` | `EventService.create` | TEST-CTRL-EVT-001/002 | AC-CTRL-003, 004 |
+| FR-CTRL-EVT-002 | `GET /api/events/{eventCode}` | `EventService.findByCode` | TEST-CTRL-EVT-003/004 | — |
+| FR-CTRL-EVT-003 | `GET /api/events/published` | `EventService.findPublishedEvents` | TEST-CTRL-EVT-005 | — |
+| FR-CTRL-EVT-004 | `PATCH /api/events/{eventCode}/publish` | `EventService.publish` | TEST-CTRL-EVT-006/007 | AC-CTRL-005, 006 |
+| FR-CTRL-EVT-005 | `POST /api/events/{eventCode}/artists/{artistId}` | `EventService.addArtist` | TEST-CTRL-EVT-008 | — |
+| FR-CTRL-EVT-006 | `GET /api/events/by-artist` | `EventService.findByArtist` | TEST-CTRL-EVT-009 | — |
+| FR-CTRL-ART-001 | `GET /api/artists/{id}` | `ArtistService.findById` | TEST-CTRL-ART-001/002 | — |
+| FR-CTRL-ART-002 | `GET /api/artists/by-stage-name` | `ArtistService.findByStageName` | TEST-CTRL-ART-003 | — |
+| FR-CTRL-ART-003 | `GET /api/artists/active` | `ArtistService.findActiveArtists` | TEST-CTRL-ART-004 | — |
+| FR-CTRL-USR-001 | `POST /api/users` | `UserService.register` | TEST-CTRL-USR-001/002/003 | AC-CTRL-007, 008 |
+| FR-CTRL-USR-002 | `GET /api/users/by-email` | `UserService.findByEmail` | TEST-CTRL-USR-004 | — |
+| FR-CTRL-USR-003 | `GET /api/users/by-username` | `UserService.findByUsername` | TEST-CTRL-USR-005 | — |
+| FR-CTRL-TKT-001 | `POST /api/tickets` | `TicketService.purchase` | TEST-CTRL-TKT-001..004 | AC-CTRL-009, 010 |
+| FR-CTRL-TKT-002 | `GET /api/tickets/{ticketCode}` | `TicketService.findByCode` | TEST-CTRL-TKT-005 | — |
+| FR-CTRL-TKT-003 | `GET /api/tickets/by-user` | `TicketService.findByUserEmail` | TEST-CTRL-TKT-006 | — |
+| FR-CTRL-TKT-004 | `GET /api/events/{eventCode}/tickets/paid` | `TicketService.findPaidTicketsByEvent` | TEST-CTRL-TKT-007 | — |
+| FR-CTRL-TKT-005 | `PATCH /api/tickets/{ticketCode}/cancel` | `TicketService.cancel` | TEST-CTRL-TKT-008/009 | AC-CTRL-011, 012 |
+| FR-CTRL-TKT-006 | `PATCH /api/tickets/{ticketCode}/use` | `TicketService.markAsUsed` | TEST-CTRL-TKT-010/011 | AC-CTRL-013, 014 |
+
+AC-CTRL-015 y AC-CTRL-016 son estructurales: ningún controlador depende de un repositorio ni
+devuelve entidades JPA (ver el [DoD](#definition-of-done-de-la-fase-3), puntos 4 y 6).
+
 ---
 
 # Definition of Done de la Fase 2
@@ -549,12 +773,58 @@ Los dos primeros no deben devolver nada.
 
 ---
 
+# Definition of Done de la Fase 3
+
+Revisión de los 27 puntos del PRD de Controladores §30. Los puntos 1 a 26 se verifican sobre el
+commit `7e1f386`; el punto 27, sobre este README actualizado en P3-10, que todavía no tiene commit.
+
+| # | Punto del DoD | Estado | Evidencia |
+|---|---|---|---|
+| 1 | Existen VenueController, EventController, ArtistController, UserController y TicketController | ✅ | `controller/` |
+| 2 | Los cinco controladores dependen exclusivamente de servicios | ✅ | Cada uno tiene un único campo `private final`, que es su `*Service`, inyectado por constructor |
+| 3 | Todos los controladores responden con `ResponseEntity` | ✅ | Los 20 métodos con `@GetMapping`, `@PostMapping` o `@PatchMapping` devuelven `ResponseEntity<…>` |
+| 4 | Ningún controlador depende de un repositorio | ✅ | Ningún import de `com.pulsepass.repository` en `controller/` |
+| 5 | Ningún controlador implementa reglas de negocio | ✅ | Solo delegan; sin `if` de dominio ni `try/catch` |
+| 6 | Ningún endpoint devuelve entidades JPA | ✅ | Ningún import de entidades de `com.pulsepass.domain` en `controller/` |
+| 7 | Se reutilizan los DTO de la capa de servicios | ✅ | Los 9 DTO de la Fase 2; `ErrorResponse` es el único nuevo (§13, §18) |
+| 8 | Se cubren los 20 métodos públicos de los servicios | ✅ | Tabla de [Endpoints](#endpoints) (§9) |
+| 9 | Los POST de creación devuelven 201 | ✅ | `create`, `register` y `purchase`. `addArtist` devuelve 200, como fija §8.2 |
+| 10 | Los GET correctos devuelven 200 | ✅ | Pruebas de los cinco controladores |
+| 11 | Los PATCH correctos devuelven 200 | ✅ | TEST-CTRL-EVT-006, TEST-CTRL-TKT-008 y TEST-CTRL-TKT-010 |
+| 12 | Bean Validation devuelve 400 | ✅ | TEST-CTRL-EVT-002, TEST-CTRL-USR-002, TEST-CTRL-TKT-002 y `GlobalExceptionHandlerTest` |
+| 13 | `ResourceNotFoundException` devuelve 404 | ✅ | TEST-CTRL-VEN-002, TEST-CTRL-EVT-004, TEST-CTRL-ART-002, TEST-CTRL-TKT-003 |
+| 14 | `DuplicateResourceException` devuelve 409 | ✅ | TEST-CTRL-USR-003 y el email duplicado (AC-CTRL-008) |
+| 15 | `BusinessRuleException` devuelve 409 | ✅ | TEST-CTRL-EVT-007, TEST-CTRL-TKT-004, TEST-CTRL-TKT-009, TEST-CTRL-TKT-011 |
+| 16 | Un error inesperado devuelve 500 | ✅ | `GlobalExceptionHandlerTest` y la compra sin código único (`TicketControllerTest`) |
+| 17 | Todos los errores utilizan `ErrorResponse` | ✅ | Todos los errores que gestiona `GlobalExceptionHandler` usan `ErrorResponse`, incluidos los de Spring MVC y los 5xx heredados (P3-D3); las pruebas comprueban las 5 claves en cada error. Los errores que ocurren fuera de Spring MVC quedan fuera (ver «Limitaciones conocidas») |
+| 18 | Todos los handlers devuelven `ResponseEntity<ErrorResponse>` | ✅ con matiz | Los cuatro manejadores propios declaran `ResponseEntity<ErrorResponse>`. Los métodos heredados de `ResponseEntityExceptionHandler` tienen la firma `ResponseEntity<Object>` impuesta por Spring, pero su cuerpo es siempre un `ErrorResponse` |
+| 19 | Existe `GlobalExceptionHandler` con `@RestControllerAdvice` | ✅ | `exception/GlobalExceptionHandler.java` |
+| 20 | Las pruebas usan `@WebMvcTest` | ✅ | Las 5 clases `*ControllerTest` y `GlobalExceptionHandlerTest` |
+| 21 | Los servicios se reemplazan con `@MockitoBean` | ✅ | Las 5 clases `*ControllerTest` |
+| 22 | Las pruebas usan MockMvc | ✅ | Todas las pruebas web |
+| 23 | Las pruebas validan el estado, el Content-Type y el JSON | ✅ | `status()`, `contentTypeCompatibleWith` y `jsonPath` en todas |
+| 24 | Se usa `verify(...)` para comprobar las llamadas al servicio | ✅ | En todas las pruebas que llegan al servicio, con los argumentos exactos |
+| 25 | Se usa `verify(..., never())` cuando un request inválido no debe llegar al servicio | ✅ | En todas las pruebas de 400 de los controladores |
+| 26 | `mvn clean test` termina con `BUILD SUCCESS` | ✅ | `./mvnw clean test` sobre `7e1f386`: 316 pruebas, 0 fallos, 0 errores, `BUILD SUCCESS` |
+| 27 | El README documenta los endpoints principales y cómo ejecutar las pruebas | ✅ | [Endpoints](#endpoints) y [Cómo ejecutarlas](#cómo-ejecutarlas) |
+
+Comandos para reproducir parte de la evidencia, desde la raíz del repositorio (los dos primeros no
+deben devolver nada):
+
+```bash
+grep -rn 'import com.pulsepass.repository\|import com.pulsepass.domain\.[A-Z]' backend/src/main/java/com/pulsepass/controller
+grep -rn 'try {\|catch (' backend/src/main/java/com/pulsepass/controller
+grep -c 'public ResponseEntity<' backend/src/main/java/com/pulsepass/controller/*.java
+```
+
+---
+
 # Decisiones clave
 
 ## Fase 1 — Persistencia
 
 * **Configuración:** `ddl-auto: validate` (PRD §13) y `open-in-view: false`. No se configura
-  ninguna conexión de base de datos (tampoco en la Fase 2): las pruebas la reciben de
+  ninguna conexión de base de datos (tampoco en las Fases 2 y 3): las pruebas la reciben de
   Testcontainers. Sin secretos en el repositorio.
 * **Identificadores:** `BIGINT GENERATED BY DEFAULT AS IDENTITY`.
 * **Enums:** columnas `VARCHAR(20)` con `CHECK` y los valores exactos del PRD.
@@ -636,7 +906,47 @@ Los PRD de Servicios, Controladores y Seguridad indican **JUnit 5**. El proyecto
 * **Impacto:** ninguno en la forma de escribir las pruebas. JUnit 6 conserva el modelo Jupiter y
   el paquete `org.junit.jupiter.api`. Las pruebas de la Fase 1 solo usan `@Test` y `@DisplayName`;
   las de la Fase 2 usan además `@ExtendWith` y `@BeforeEach`, y de `org.junit.jupiter.params`,
-  `@ParameterizedTest`, `@EnumSource` y `@CsvSource`, junto con `@RepeatedTest`.
+  `@ParameterizedTest`, `@EnumSource` y `@CsvSource`, junto con `@RepeatedTest`. Las de la Fase 3
+  añaden `@NullAndEmptySource` y `@ValueSource`, y de Spring, `@WebMvcTest` y `@MockitoBean` (PRD
+  de Controladores §17, que también indica JUnit 5).
+
+## Fase 3 — Controladores REST
+
+| ID | Decisión | Origen |
+|---|---|---|
+| P3-D1 | Añadir `spring-boot-starter-webmvc`, `spring-boot-starter-validation` y, en pruebas, `spring-boot-starter-webmvc-test`, con las versiones del BOM | Proyecto (base §17) |
+| P3-02 | `spring.jpa.properties.hibernate.check_nullability: true`: con Hibernate Validator en el classpath, Hibernate desactiva su comprobación de nulos; se reactiva para conservar el rechazo antes del INSERT que verifican las pruebas de la Fase 1 | Proyecto |
+| P3-D2 | `GET /api/events/{eventCode}/tickets/paid` va en `TicketController` | Proyecto (base §22.5 y §29) |
+| P3-D3 | `GlobalExceptionHandler` extiende `ResponseEntityExceptionHandler`: también los errores de Spring MVC usan `ErrorResponse`, con su estado real (incluidos 405 y 415) | Proyecto (base NFR-CTRL-003) |
+| P3-D4 | Las validaciones mínimas del PRD, más las longitudes máximas de las columnas de V1 | Proyecto (base §11) |
+| P3-D5 | Mensajes en inglés con el patrón del ejemplo de §13; mensajes propios para JSON mal formado, parámetro ausente, valor incompatible, ruta inexistente, 405, 415 y 500 | Proyecto (base §13) |
+| P3-D6 | Varios errores de un mismo campo se unen en orden alfabético con `; ` | Proyecto |
+| P3-D7 | `timestamp` con el `Clock` inyectado: `LocalDateTime` (como §13) truncado a segundos, sin zona en el JSON | Proyecto (base §13) |
+| P3-D8 | Sin cabecera `Location` en los 201 | Proyecto |
+| P3-D9 | Los parámetros de consulta solo se exigen; no se validan | Proyecto |
+| P3-D10 | `DataIntegrityViolationException` responde 500 | PRD §14 |
+| P3-D11 | Solo pruebas `@WebMvcTest` y `GlobalExceptionHandlerTest`; sin pruebas de integración nuevas | Proyecto (base §17 y §21) |
+| P3-D12 | `ControllerFixtures` con los DTO del escenario de §23; JSON escrito como texto en las pruebas | Proyecto (base §23) |
+| P3-04 | Los errores de Spring MVC con estado 5xx también responden «Unexpected error», con `details` vacío y el estado original | Proyecto (base NFR-CTRL-007) |
+| AR-1 | Solar Beat, Neon Waves y Caribbean Sound en `ControllerFixtures` | Proyecto (base §23.3) |
+| AR-2 | 8 pruebas de `ArtistController`: las 4 mínimas, el 404 por nombre, el `id` no numérico, el parámetro ausente y la lista vacía | Proyecto |
+| AR-3 | Sin prueba de `stageName` vacío: lo resuelve el servicio | Proyecto |
+| AR-4 | Sin prueba específica de artistas inactivos: lo decide el servicio | Proyecto |
+| US-1 | Datos de Andrea en `ControllerFixtures`; el request se comprueba con `eq(...)` sobre el record completo | Proyecto (base §23.4) |
+| US-2 | 12 pruebas de `UserController`: las 5 mínimas, AC-CTRL-008 y 6 adicionales | Proyecto |
+| US-3 | Los campos obligatorios ausentes se prueban con una sola petición `{}` | Proyecto |
+| US-4 | Se mantiene el mensaje del servicio en el 409 por email duplicado | Proyecto (base AC-CTRL-008) |
+| EV-1 | Fixtures de CMF-2026 con el estado y los artistas que pida cada prueba | Proyecto (base §23.2) |
+| EV-2 | 18 pruebas de `EventController`: las 9 mínimas y 9 adicionales | Proyecto |
+| EV-3 | TEST-CTRL-EVT-002 con `{}` y las 6 claves obligatorias | Proyecto (base AC-CTRL-004) |
+| EV-4 | Los artistas de un evento se comparan sin orden, porque el servicio no lo garantiza | Proyecto (base P2-05 D-C1) |
+| TKC-1 | `TicketController` usa el prefijo `/api` | Proyecto (base P3-D2) |
+| TKC-2 | 21 pruebas de `TicketController`: las 11 mínimas y 10 adicionales | Proyecto |
+| TKC-3 | TEST-CTRL-TKT-002 con `{}` y las 3 claves obligatorias | Proyecto |
+| TKC-4 | El precio de las fixtures es el de VIP de TP-2 (DATO DE DISEÑO) | Proyecto |
+| TKC-5 | Los `PATCH` no declaran cuerpo; si llega uno, se ignora | Proyecto |
+
+El prefijo `TKC-` evita la colisión con las decisiones `TK-*` de P2-13 y `TC-*` de P2-14.
 
 ---
 
@@ -647,8 +957,10 @@ Los PRD de Servicios, Controladores y Seguridad indican **JUnit 5**. El proyecto
 * **Comodines en `findRecommended`:** los caracteres `%` y `_` del texto de búsqueda no se
   escapan, porque el PRD no define ese caso.
 * **Rechazos de Hibernate antes del INSERT:** las pruebas de relaciones obligatorias (`venue`,
-  `user`, `event`) esperan que Hibernate detecte el valor null antes de enviar la sentencia, lo
-  que ocurre mientras el proyecto no incluya Bean Validation (sigue sin incluirlo en la Fase 2).
+  `user`, `event`) esperan que Hibernate detecte el valor null antes de enviar la sentencia. Desde
+  la Fase 3, Hibernate Validator está en el classpath y Hibernate desactiva por defecto esa
+  comprobación; `hibernate.check_nullability: true` en `application.yml` la mantiene activa
+  (P3-02). Sin esa propiedad, el rechazo vendría de la restricción `NOT NULL` de PostgreSQL.
 * **Código de pruebas:** los métodos auxiliares que verifican las restricciones de PostgreSQL
   están repetidos en varias clases de prueba; se mantienen así de forma intencional.
 
@@ -675,5 +987,42 @@ Los PRD de Servicios, Controladores y Seguridad indican **JUnit 5**. El proyecto
   capacidad (TK-1) y no se pueden cancelar ni usar (TC-5).
 * **Datos de prueba:** `ServiceFixtures` y `PersistenceFixtures` difieren a propósito, porque cada
   una sigue su PRD (por ejemplo, la capacidad de VEN-SMR-01).
-* **Sin validación estructural:** los servicios no validan `null` ni cadenas vacías (P2-D18); esa
-  validación llegará con Bean Validation en la Fase 3.
+* **Sin validación estructural en los servicios:** los servicios no validan `null` ni cadenas
+  vacías (P2-D18). Por HTTP esa validación la hace Bean Validation en los controladores desde la
+  Fase 3; quien llame a un servicio directamente, sin pasar por un controlador, no la tiene.
+
+## Fase 3 — Controladores REST
+
+Implementado en esta fase, con estas limitaciones conocidas:
+
+* **Firma de los métodos heredados del handler:** los métodos que `GlobalExceptionHandler` hereda
+  de `ResponseEntityExceptionHandler` tienen la firma `ResponseEntity<Object>`, impuesta por
+  Spring; su cuerpo es siempre un `ErrorResponse` (ver el punto 18 del DoD).
+* **Errores fuera de Spring MVC:** los errores que ocurren antes de `DispatcherServlet` (por
+  ejemplo, en un filtro de servlet) no pasan por `GlobalExceptionHandler` y usan el formato de
+  `/error` de Spring Boot. Hoy no hay filtros propios.
+* **405 y 415:** se responden con su estado real, aunque no están en la lista de códigos de §16
+  (P3-D3).
+* **Códigos que coinciden con una ruta literal:** un venue con código `active`, un evento con
+  código `published` o `by-artist`, o un ticket con código `by-user` no se podrían consultar por su
+  ruta con variable. Los formatos reales (`VEN-…`, `CMF-…`, `TKT-…`) no chocan.
+* **Campos JSON desconocidos:** se ignoran. Por ejemplo, un `"active": false` o un `"password"` en
+  el registro no tienen efecto, porque el record no tiene esos campos.
+* **Sin 404 en dos listas:** `GET /api/tickets/by-user` y `GET /api/events/{eventCode}/tickets/paid`
+  responden `[]` si el usuario o el evento no existen (TK-7), así que un cliente no distingue «sin
+  tickets» de «no existe».
+* **Errores de integridad:** las carreras de concurrencia de la Fase 2 (email con distinto uso de
+  mayúsculas, código de ticket repetido) llegan como `DataIntegrityViolationException` y
+  responden 500 (P3-D10).
+* **La aplicación no arranca sola:** no hay datasource configurado (decisión de la Fase 1: sin
+  secretos en el repositorio). Las pruebas reciben la base de datos de Testcontainers; ejecutar la
+  API manualmente, por ejemplo con Postman, requiere configurar la conexión, y corresponde a una
+  fase posterior.
+
+Queda para fases posteriores:
+
+* **Seguridad (Fase 4):** en esta fase todos los endpoints son públicos (R-CTRL-003). No hay
+  autenticación, roles ni control de propiedad: cualquiera puede consultar, cancelar o usar
+  cualquier ticket, y `GET /api/events/{eventCode}` también muestra eventos en `DRAFT`.
+* **Fuera del alcance del PRD de Controladores (§27):** OpenAPI/Swagger, paginación, CORS avanzado,
+  versionado de la API (`/api/v1`) y pruebas E2E.
