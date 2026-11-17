@@ -44,18 +44,18 @@ class FlywayMigrationIT {
     private ArtistRepository artistRepository;
 
     @Test
-    @DisplayName("QT-001: Flyway aplica V1, V2 y V3 desde una base vacía")
-    void flywayAppliesV1V2V3() {
+    @DisplayName("QT-001: Flyway aplica V1, V2, V3 y V4 desde una base vacía (V4: Fase 4, P4-D17)")
+    void flywayAppliesV1ToV4() {
         MigrationInfo[] applied = flyway.info().applied();
 
         List<String> versions = Arrays.stream(applied)
                 .map(info -> info.getVersion().getVersion())
                 .toList();
 
-        assertThat(versions).containsExactly("1", "2", "3");
+        assertThat(versions).containsExactly("1", "2", "3", "4");
         assertThat(applied).allSatisfy(info ->
                 assertThat(info.getState()).isEqualTo(MigrationState.SUCCESS));
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
         assertThat(flyway.info().pending()).isEmpty();
     }
 
