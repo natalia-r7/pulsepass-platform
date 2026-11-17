@@ -16,6 +16,7 @@ import com.pulsepass.mapper.EventMapper;
 import com.pulsepass.repository.ArtistRepository;
 import com.pulsepass.repository.EventRepository;
 import com.pulsepass.repository.VenueRepository;
+import com.pulsepass.service.AuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,11 +41,13 @@ import static com.pulsepass.service.ServiceFixtures.solarBeat;
 import static com.pulsepass.service.ServiceFixtures.venSmr01;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -77,12 +80,16 @@ class EventServiceImplTest {
     @Mock
     private EventMapper eventMapper;
 
+    /** P4-04b: la identidad de la petición; cada prueba de findByCode indica si es STAFF/ADMIN. */
+    @Mock
+    private AuthorizationService authorizationService;
+
     private EventServiceImpl eventService;
 
     @BeforeEach
     void setUp() {
         eventService = new EventServiceImpl(
-                eventRepository, venueRepository, artistRepository, eventMapper, FIXED_CLOCK);
+                eventRepository, venueRepository, artistRepository, eventMapper, FIXED_CLOCK, authorizationService);
     }
 
     // ---------------------------------------------------------------- findByCode
@@ -95,6 +102,7 @@ class EventServiceImplTest {
         EventResponse expected = eventResponse();
         when(eventRepository.findByEventCode("CMF-2026")).thenReturn(Optional.of(event));
         when(eventMapper.toResponse(event)).thenReturn(expected);
+        when(authorizationService.isStaffOrAdmin()).thenReturn(true); // P4-04b: consulta hecha por STAFF (P4-D2)
 
         // ACT
         EventResponse response = eventService.findByCode("CMF-2026");
@@ -115,6 +123,80 @@ class EventServiceImplTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Event not found: XXX-0000");
         verify(eventMapper, never()).toResponse(any());
+    }
+
+    // ---------------------------------------------------------------- findByCode: visibilidad (P4-04b)
+
+    @ParameterizedTest(name = "estado {0}")
+    @EnumSource(value = EventStatus.class, names = {"DRAFT", "SOLD_OUT", "CANCELLED", "FINISHED"})
+    @DisplayName("P4-D2 / P4-D3: un evento no publicado responde como inexistente para quien no es STAFF/ADMIN, sin convertirlo en DTO")
+    void findByCodeHidesNonPublishedEventFromNonPrivilegedCaller(EventStatus status) {
+        // ARRANGE
+        Event event = cmf2026(venSmr01());
+        event.setStatus(status);
+        when(eventRepository.findByEventCode("CMF-2026")).thenReturn(Optional.of(event));
+        when(authorizationService.isStaffOrAdmin()).thenReturn(false);
+
+        // ACT + ASSERT
+        assertThatThrownBy(() -> eventService.findByCode("CMF-2026"))
+                .isExactlyInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Event not found: CMF-2026");
+        verify(eventMapper, never()).toResponse(any());
+    }
+
+    @Test
+    @DisplayName("P4-D3: un evento PUBLISHED es público y no se consulta la identidad")
+    void findByCodeReturnsPublishedEventWithoutCheckingIdentity() {
+        // ARRANGE
+        Event event = cmf2026(venSmr01());
+        event.setStatus(EventStatus.PUBLISHED);
+        EventResponse expected = eventResponse();
+        when(eventRepository.findByEventCode("CMF-2026")).thenReturn(Optional.of(event));
+        when(eventMapper.toResponse(event)).thenReturn(expected);
+
+        // ACT
+        EventResponse response = eventService.findByCode("CMF-2026");
+
+        // ASSERT
+        assertThat(response).isEqualTo(expected);
+        verifyNoInteractions(authorizationService);
+    }
+
+    @ParameterizedTest(name = "estado {0}")
+    @EnumSource(value = EventStatus.class, names = {"DRAFT", "SOLD_OUT", "CANCELLED", "FINISHED"})
+    @DisplayName("P4-D2: STAFF y ADMIN ven un evento en cualquier estado")
+    void findByCodeReturnsNonPublishedEventToStaffOrAdmin(EventStatus status) {
+        // ARRANGE
+        Event event = cmf2026(venSmr01());
+        event.setStatus(status);
+        EventResponse expected = eventResponse();
+        when(eventRepository.findByEventCode("CMF-2026")).thenReturn(Optional.of(event));
+        when(eventMapper.toResponse(event)).thenReturn(expected);
+        when(authorizationService.isStaffOrAdmin()).thenReturn(true);
+
+        // ACT
+        EventResponse response = eventService.findByCode("CMF-2026");
+
+        // ASSERT
+        assertThat(response).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("P4-D2: el 404 de un evento oculto es idéntico al de un evento inexistente (tipo y mensaje)")
+    void hiddenEventFailsExactlyLikeMissingEvent() {
+        // ARRANGE: primero existe en DRAFT, después no existe; mismo código en ambos casos.
+        Event draft = cmf2026(venSmr01());
+        when(eventRepository.findByEventCode("CMF-2026")).thenReturn(Optional.of(draft), Optional.empty());
+        when(authorizationService.isStaffOrAdmin()).thenReturn(false);
+
+        // ACT
+        Throwable hidden = catchThrowable(() -> eventService.findByCode("CMF-2026"));
+        Throwable missing = catchThrowable(() -> eventService.findByCode("CMF-2026"));
+
+        // ASSERT
+        assertThat(hidden).isExactlyInstanceOf(ResourceNotFoundException.class);
+        assertThat(missing).isExactlyInstanceOf(ResourceNotFoundException.class);
+        assertThat(hidden.getMessage()).isEqualTo(missing.getMessage());
     }
 
     // ---------------------------------------------------------------- create

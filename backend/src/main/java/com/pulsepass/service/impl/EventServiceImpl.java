@@ -14,6 +14,7 @@ import com.pulsepass.mapper.EventMapper;
 import com.pulsepass.repository.ArtistRepository;
 import com.pulsepass.repository.EventRepository;
 import com.pulsepass.repository.VenueRepository;
+import com.pulsepass.service.AuthorizationService;
 import com.pulsepass.service.EventService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,13 +53,18 @@ public class EventServiceImpl implements EventService {
 
     private final Clock clock;
 
+    /** Decide si la petición actual puede ver eventos no publicados (P4-04b, P4-D2). */
+    private final AuthorizationService authorizationService;
+
     public EventServiceImpl(EventRepository eventRepository, VenueRepository venueRepository,
-                            ArtistRepository artistRepository, EventMapper eventMapper, Clock clock) {
+                            ArtistRepository artistRepository, EventMapper eventMapper, Clock clock,
+                            AuthorizationService authorizationService) {
         this.eventRepository = eventRepository;
         this.venueRepository = venueRepository;
         this.artistRepository = artistRepository;
         this.eventMapper = eventMapper;
         this.clock = clock;
+        this.authorizationService = authorizationService;
     }
 
     /**
@@ -104,13 +110,22 @@ public class EventServiceImpl implements EventService {
         return eventMapper.toResponse(eventRepository.save(event));
     }
 
-    /** {@inheritDoc} Mensaje según §35 y V-2a. */
+    /**
+     * {@inheritDoc} Mensaje según §35 y V-2a.
+     *
+     * <p>Visibilidad (PRD Seguridad FR-SEC-EVT-02; P4-D2, P4-D3): solo un evento PUBLISHED es
+     * público. Un evento en cualquier otro estado solo lo ven STAFF y ADMIN; para el resto responde
+     * exactamente igual que un evento inexistente, para no revelar que existe. La identidad solo se
+     * consulta si el evento no está publicado, y el evento oculto nunca se convierte en DTO.
+     */
     @Override
     @Transactional(readOnly = true)
     public EventResponse findByCode(String eventCode) {
-        return eventRepository.findByEventCode(eventCode)
-                .map(eventMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + eventCode));
+        Event event = findEventOrThrow(eventCode);
+        if (event.getStatus() != EventStatus.PUBLISHED && !authorizationService.isStaffOrAdmin()) {
+            throw eventNotFound(eventCode);
+        }
+        return eventMapper.toResponse(event);
     }
 
     /** {@inheritDoc} Conserva el orden por fecha que da el repositorio (§37). */
@@ -206,9 +221,20 @@ public class EventServiceImpl implements EventService {
                 .toList();
     }
 
-    /** Busca el evento o lanza {@code ResourceNotFoundException} (V-2a). Lo usan publish y addArtist. */
+    /**
+     * Busca el evento o lanza {@code ResourceNotFoundException} (V-2a). Lo usan findByCode, publish y
+     * addArtist.
+     */
     private Event findEventOrThrow(String eventCode) {
         return eventRepository.findByEventCode(eventCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + eventCode));
+                .orElseThrow(() -> eventNotFound(eventCode));
+    }
+
+    /**
+     * Única fuente del 404 de un evento (V-2a). La usan tanto un evento inexistente como uno oculto,
+     * para que la respuesta sea idéntica y no revele que el evento existe (P4-D2).
+     */
+    private static ResourceNotFoundException eventNotFound(String eventCode) {
+        return new ResourceNotFoundException("Event not found: " + eventCode);
     }
 }
