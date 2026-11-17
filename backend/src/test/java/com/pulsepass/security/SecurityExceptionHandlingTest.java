@@ -26,6 +26,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -157,9 +158,10 @@ class SecurityExceptionHandlingTest {
     }
 
     @Test
-    @DisplayName("P4-04-c: Spring Boot no crea el usuario en memoria (ningún UserDetailsService)")
+    @DisplayName("P4-04-c: Spring Boot no crea el usuario en memoria (ningún InMemoryUserDetailsManager; el único UserDetailsService es customUserDetailsService)")
     void noInMemoryUserIsCreated() {
-        assertThat(context.getBeansOfType(UserDetailsService.class)).isEmpty();
+        assertThat(context.getBeansOfType(InMemoryUserDetailsManager.class)).isEmpty();
+        assertThat(context.getBeansOfType(UserDetailsService.class)).containsOnlyKeys("customUserDetailsService");
     }
 
     private GlobalExceptionHandler handler() {

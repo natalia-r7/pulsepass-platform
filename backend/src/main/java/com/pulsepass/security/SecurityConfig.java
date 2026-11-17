@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Cadena de seguridad HTTP de PulsePass (PRD Seguridad §7.1, §11, §14.3; P4-04-b).
@@ -19,9 +20,13 @@ import org.springframework.security.web.SecurityFilterChain;
  * (SEC-001, P4-D7). Las rutas concretas van antes que los patrones generales (§14.3.4).
  * <p>
  * Los 401 y 403 los escriben {@link RestAuthenticationEntryPoint} y {@link RestAccessDeniedHandler}
- * con el {@code ErrorResponse} común. La propiedad de los recursos (P4-08), la visibilidad de los
- * borradores (P4-04b), el filtro JWT (P4-05) y las rutas de autenticación (P4-07) se añaden en sus
- * tareas.
+ * con el {@code ErrorResponse} común. La visibilidad de los borradores la decide el servicio
+ * (P4-04b). La propiedad de los recursos (P4-08) y las rutas de autenticación (P4-07) se añaden en
+ * sus tareas.
+ * <p>
+ * {@link JwtAuthenticationFilter} (P4-05) se crea aquí y no es un bean, para que solo exista dentro
+ * de esta cadena y se ejecute una sola vez (P4-05-f). Va antes de
+ * {@code UsernamePasswordAuthenticationFilter} (§14.3).
  */
 @Configuration
 @EnableWebSecurity
@@ -30,8 +35,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    RestAuthenticationEntryPoint authenticationEntryPoint,
-                                                   RestAccessDeniedHandler accessDeniedHandler) throws Exception {
+                                                   RestAccessDeniedHandler accessDeniedHandler,
+                                                   JwtService jwtService,
+                                                   CustomUserDetailsService userDetailsService) throws Exception {
         http
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, userDetailsService, authenticationEntryPoint),
+                        UsernamePasswordAuthenticationFilter.class)
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
