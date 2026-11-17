@@ -1,11 +1,18 @@
 package com.pulsepass.controller;
 
+import com.pulsepass.domain.enums.EventCategory;
+import com.pulsepass.domain.enums.EventStatus;
+import com.pulsepass.dto.request.CreateEventRequest;
 import com.pulsepass.dto.request.RegisterUserRequest;
 import com.pulsepass.dto.response.ArtistResponse;
+import com.pulsepass.dto.response.EventResponse;
+import com.pulsepass.dto.response.EventSummaryResponse;
 import com.pulsepass.dto.response.UserResponse;
 import com.pulsepass.dto.response.VenueResponse;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Datos de prueba de la capa de controladores (P3-D12).
@@ -115,5 +122,64 @@ public final class ControllerFixtures {
                 null,                        // phone
                 null,                        // city
                 ANDREA_BIRTH_DATE);          // DATO DE PRUEBA
+    }
+
+    // ---------------------------------------------------------------- Events (P3-08 EV-1)
+
+    // §23.2 da code, name, category, status inicial y minimumAge. eventDate es DATO DE PRUEBA,
+    // la misma fecha de ServiceFixtures; description queda en null (opcional, §23 no la da).
+    // El venue es VEN-SMR-01 (§23.1) y los artistas, los de §23.3.
+
+    /** Código de CMF-2026 (PRD §23.2). */
+    public static final String CMF_2026_CODE = "CMF-2026";
+
+    /** Nombre de CMF-2026 (PRD §23.2). */
+    public static final String CMF_2026_NAME = "Caribbean Music Fest 2026";
+
+    /** DATO DE PRUEBA: §23 no da la fecha de CMF-2026 (la misma que en ServiceFixtures). */
+    public static final LocalDateTime CMF_2026_EVENT_DATE = LocalDateTime.of(2026, 12, 12, 20, 0);
+
+    /** Creación de CMF-2026 en VEN-SMR-01, sin descripción (opcional). */
+    public static CreateEventRequest cmf2026CreateRequest() {
+        return new CreateEventRequest(
+                CMF_2026_CODE,               // PRD §23.2
+                CMF_2026_NAME,               // PRD §23.2
+                null,                        // description (opcional)
+                EventCategory.MUSIC,         // PRD §23.2
+                CMF_2026_EVENT_DATE,         // DATO DE PRUEBA
+                18,                          // PRD §23.2 minimumAge
+                VEN_SMR_01_CODE);            // PRD §23.1
+    }
+
+    /**
+     * CMF-2026 tal como lo devuelve el servicio, con el estado y los artistas que pida cada
+     * prueba (por ejemplo, DRAFT sin artistas tras crearlo).
+     */
+    public static EventResponse cmf2026Response(EventStatus status, ArtistResponse... artists) {
+        return new EventResponse(
+                1L,                          // DATO DE PRUEBA
+                CMF_2026_CODE,               // PRD §23.2
+                CMF_2026_NAME,               // PRD §23.2
+                null,                        // description
+                EventCategory.MUSIC,         // PRD §23.2
+                status,
+                CMF_2026_EVENT_DATE,         // DATO DE PRUEBA
+                18,                          // PRD §23.2 minimumAge
+                VEN_SMR_01_CODE,             // PRD §23.1
+                venSmr01Response().name(),   // PRD §23.1
+                List.of(artists));           // PRD §23.3
+    }
+
+    /** Resumen de CMF-2026 (EventSummaryResponse) con el estado indicado. */
+    public static EventSummaryResponse cmf2026SummaryResponse(EventStatus status) {
+        return new EventSummaryResponse(
+                1L,                          // DATO DE PRUEBA
+                CMF_2026_CODE,               // PRD §23.2
+                CMF_2026_NAME,               // PRD §23.2
+                EventCategory.MUSIC,         // PRD §23.2
+                status,
+                CMF_2026_EVENT_DATE,         // DATO DE PRUEBA
+                VEN_SMR_01_CODE,             // PRD §23.1
+                venSmr01Response().name());  // PRD §23.1
     }
 }
