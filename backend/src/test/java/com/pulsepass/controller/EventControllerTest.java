@@ -3,10 +3,13 @@ package com.pulsepass.controller;
 import com.pulsepass.FixedClockTestConfiguration;
 import com.pulsepass.domain.enums.EventCategory;
 import com.pulsepass.domain.enums.EventStatus;
+import com.pulsepass.domain.enums.Role;
 import com.pulsepass.dto.request.CreateEventRequest;
 import com.pulsepass.exception.BusinessRuleException;
 import com.pulsepass.exception.DuplicateResourceException;
 import com.pulsepass.exception.ResourceNotFoundException;
+import com.pulsepass.security.WebSecurityTestConfiguration;
+import com.pulsepass.security.WithSecurityPrincipal;
 import com.pulsepass.service.EventService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,7 +65,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * está garantizado (P2-05 D-C1): cuando hay varios, se comparan sin orden (EV-4).
  */
 @WebMvcTest(EventController.class)
-@Import(FixedClockTestConfiguration.class)
+@Import({FixedClockTestConfiguration.class, WebSecurityTestConfiguration.class})
 class EventControllerTest {
 
     /** JSON de la creación de CMF-2026; debe coincidir campo a campo con {@code cmf2026CreateRequest()}. */
@@ -93,6 +96,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-EVT-001 / AC-CTRL-003: creación válida → 201 con el evento en DRAFT y sin Location")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void createReturns201WithEvent() throws Exception {
         // ARRANGE
         when(eventService.create(eq(cmf2026CreateRequest()))).thenReturn(cmf2026Response(EventStatus.DRAFT));
@@ -124,6 +128,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-EVT-002 / AC-CTRL-004 / EV-3: cuerpo vacío → 400 con exactamente los 6 campos obligatorios y sin llamar al servicio")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void createReturns400WhenRequiredFieldsAreMissing() throws Exception {
         // ACT
         ResultActions result = mockMvc.perform(post("/api/events")
@@ -145,6 +150,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("§11.1 / QT-CTRL-010: minimumAge = -1 → 400 y no se llama al servicio")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void createReturns400WhenMinimumAgeIsNegative() throws Exception {
         // ARRANGE
         String json = CMF_2026_CREATE_JSON.replace("\"minimumAge\": 18", "\"minimumAge\": -1"); // DATO DE PRUEBA: límite
@@ -164,6 +170,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("BR-EVENT-001: código de evento duplicado → 409 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void createReturns409WhenEventCodeIsDuplicated() throws Exception {
         // ARRANGE
         when(eventService.create(eq(cmf2026CreateRequest())))
@@ -183,6 +190,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("BR-EVENT-002: venue inexistente → 404 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void createReturns404WhenVenueDoesNotExist() throws Exception {
         // ARRANGE
         CreateEventRequest request = new CreateEventRequest(CMF_2026_CODE, CMF_2026_NAME, null,
@@ -277,6 +285,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-EVT-006 / AC-CTRL-005: PATCH /api/events/CMF-2026/publish → 200 con el evento PUBLISHED")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void publishReturns200WithPublishedEvent() throws Exception {
         // ARRANGE
         when(eventService.publish(CMF_2026_CODE)).thenReturn(cmf2026Response(EventStatus.PUBLISHED));
@@ -293,6 +302,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-EVT-007 / AC-CTRL-006: publicar un evento que no está en DRAFT → 409 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void publishReturns409WhenEventIsNotDraft() throws Exception {
         // ARRANGE
         when(eventService.publish(CMF_2026_CODE))
@@ -310,6 +320,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("FR-CTRL-EVT-004: publicar un evento inexistente → 404 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void publishReturns404WhenEventDoesNotExist() throws Exception {
         // ARRANGE
         when(eventService.publish(UNKNOWN_EVENT_CODE))
@@ -329,6 +340,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-EVT-008: POST /api/events/CMF-2026/artists/1 → 200 (no 201) con el evento actualizado")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void addArtistReturns200WithEvent() throws Exception {
         // ARRANGE
         when(eventService.addArtist(CMF_2026_CODE, 1L))
@@ -348,6 +360,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("FR-CTRL-EVT-005: artista inexistente → 404 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void addArtistReturns404WhenArtistDoesNotExist() throws Exception {
         // ARRANGE
         when(eventService.addArtist(CMF_2026_CODE, 99L)) // DATO DE PRUEBA
@@ -366,6 +379,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("BR-EVENT-010: artista ya asociado → 409 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void addArtistReturns409WhenArtistIsAlreadyAssociated() throws Exception {
         // ARRANGE
         when(eventService.addArtist(CMF_2026_CODE, 1L))
@@ -384,6 +398,7 @@ class EventControllerTest {
 
     @Test
     @DisplayName("QT-CTRL-007: artistId no numérico → 400 y no se llama al servicio")
+    @WithSecurityPrincipal(roles = Role.ADMIN)
     void addArtistReturns400WhenArtistIdIsNotNumeric() throws Exception {
         // ACT
         ResultActions result = mockMvc.perform(

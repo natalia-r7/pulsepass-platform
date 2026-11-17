@@ -2,6 +2,7 @@ package com.pulsepass.controller;
 
 import com.pulsepass.FixedClockTestConfiguration;
 import com.pulsepass.exception.ResourceNotFoundException;
+import com.pulsepass.security.WebSecurityTestConfiguration;
 import com.pulsepass.service.VenueService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * handler.
  */
 @WebMvcTest(VenueController.class)
-@Import(FixedClockTestConfiguration.class)
+@Import({FixedClockTestConfiguration.class, WebSecurityTestConfiguration.class})
 class VenueControllerTest {
 
     @Autowired

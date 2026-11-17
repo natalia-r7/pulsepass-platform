@@ -1,8 +1,11 @@
 package com.pulsepass.exception;
 
 import com.pulsepass.FixedClockTestConfiguration;
+import com.pulsepass.domain.enums.Role;
 import com.pulsepass.dto.request.CreateEventRequest;
 import com.pulsepass.dto.request.RegisterUserRequest;
+import com.pulsepass.security.WebSecurityTestConfiguration;
+import com.pulsepass.security.WithSecurityPrincipal;
 import jakarta.validation.Valid;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,7 +54,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * texto (P3-D12).
  */
 @WebMvcTest(controllers = GlobalExceptionHandlerTest.ProbeController.class)
-@Import({GlobalExceptionHandlerTest.ProbeController.class, FixedClockTestConfiguration.class})
+@Import({GlobalExceptionHandlerTest.ProbeController.class, FixedClockTestConfiguration.class, WebSecurityTestConfiguration.class})
+@WithSecurityPrincipal(roles = Role.USER)
 class GlobalExceptionHandlerTest {
 
     /** CreateEventRequest válido salvo por {@code eventCode}, ausente. Datos de CMF-2026 (§23). */

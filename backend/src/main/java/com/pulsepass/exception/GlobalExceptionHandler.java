@@ -1,6 +1,8 @@
 package com.pulsepass.exception;
 
 import com.pulsepass.dto.response.ErrorResponse;
+import com.pulsepass.security.SecurityPrincipal;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -8,6 +10,12 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationTrustResolver;
+import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -23,9 +31,6 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -44,6 +49,10 @@ import java.util.TreeSet;
  * <p>
  * Mensajes en inglés (P3-D5). Una respuesta 500 nunca incluye el mensaje ni la traza de la
  * excepción original (NFR-CTRL-007); la excepción se registra solo en el log del servidor.
+ * <p>
+ * Los cuerpos los construye {@link ErrorResponseFactory}, la misma fábrica que usan los 401 y 403
+ * de la cadena de seguridad (P4-04-d). Las denegaciones que llegan a Spring MVC (por ejemplo, de
+ * la seguridad a nivel de método) responden 401 o 403, nunca 500 (P4-D19, P4-04-g).
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -57,11 +66,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     /** Separador de varios mensajes de un mismo campo (P3-D6). */
     private static final String MESSAGE_SEPARATOR = "; ";
 
-    private final Clock clock;
+    /** Cabecera de los 401 (RFC 6750, P4-04-f): indica el esquema esperado, sin detalles del error. */
+    private static final String BEARER_CHALLENGE = "Bearer";
 
-    /** El {@link Clock} es el bean de {@code ClockConfig} (P2-D4, P3-D7). */
-    public GlobalExceptionHandler(Clock clock) {
-        this.clock = clock;
+    private final ErrorResponseFactory errorResponseFactory;
+
+    /** Distingue una identidad anónima de una autenticada (P4-D19). */
+    private final AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
+
+    public GlobalExceptionHandler(ErrorResponseFactory errorResponseFactory) {
+        this.errorResponseFactory = errorResponseFactory;
     }
 
     // ---------------------------------------------------------------- Excepciones del dominio
@@ -82,6 +96,39 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException ex) {
         return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // ---------------------------------------------------------------- Seguridad (P4-D19)
+
+    /**
+     * Denegación dentro de Spring MVC (por ejemplo, de {@code @PreAuthorize}). Sin este manejador
+     * la capturaría {@link #handleUnexpected} y respondería 500. Sin identidad o con una identidad
+     * anónima → 401; con una identidad autenticada sin permiso → 403 (§13, SEC-009).
+     * <p>
+     * Registra el intento con el mismo formato que los manejadores de la cadena de seguridad
+     * (P4-04-j): 401 en INFO y 403 en WARN, con método y ruta, sin la query string ni cabeceras.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || trustResolver.isAnonymous(authentication)) {
+            logAuthenticationRequired(request);
+            return unauthorized(ErrorResponseFactory.AUTHENTICATION_REQUIRED);
+        }
+        logger.warn("Access denied: " + request.getMethod() + " " + request.getRequestURI()
+                + " userId=" + principalId(authentication));
+        return error(HttpStatus.FORBIDDEN, ErrorResponseFactory.ACCESS_DENIED);
+    }
+
+    /**
+     * Autenticación fallida dentro de Spring MVC (el login, P4-07) → 401 genérico (FR-SEC-AUTH-003).
+     * Se registra en INFO con el formato de los 401 (P4-04-j); nunca el identificador ni la contraseña.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationFailure(AuthenticationException ex,
+                                                                     HttpServletRequest request) {
+        logAuthenticationRequired(request);
+        return unauthorized(ErrorResponseFactory.INVALID_CREDENTIALS);
     }
 
     /**
@@ -218,19 +265,38 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(status).body(body(status, message));
     }
 
-    private ErrorResponse body(HttpStatusCode status, String message) {
-        return body(status, message, Map.of());
+    /** 401 con la cabecera {@code WWW-Authenticate: Bearer} (P4-04-f). */
+    private ResponseEntity<ErrorResponse> unauthorized(String message) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.WWW_AUTHENTICATE, BEARER_CHALLENGE)
+                .body(body(HttpStatus.UNAUTHORIZED, message));
     }
 
-    /** Construye el {@link ErrorResponse} con la hora del {@link Clock} inyectado (P3-D7). */
+    private ErrorResponse body(HttpStatusCode status, String message) {
+        return errorResponseFactory.create(status, message);
+    }
+
     private ErrorResponse body(HttpStatusCode status, String message, Map<String, String> details) {
-        LocalDateTime timestamp = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
-        return new ErrorResponse(timestamp, status.value(), reasonPhrase(status), message, details);
+        return errorResponseFactory.create(status, message, details);
     }
 
     private static String reasonPhrase(HttpStatusCode status) {
-        HttpStatus known = HttpStatus.resolve(status.value());
-        return known != null ? known.getReasonPhrase() : "Error";
+        return ErrorResponseFactory.reasonPhrase(status);
+    }
+
+    /**
+     * Log de un 401 (P4-04-j): solo método y ruta. {@code getRequestURI()} no incluye la query
+     * string, que puede llevar datos personales, y no se registra ninguna cabecera (NFR-SEC-006).
+     */
+    private void logAuthenticationRequired(HttpServletRequest request) {
+        logger.info("Authentication required: " + request.getMethod() + " " + request.getRequestURI());
+    }
+
+    /** Id del usuario para el log: nunca la contraseña, el token ni datos personales (NFR-SEC-006). */
+    private static String principalId(Authentication authentication) {
+        return authentication.getPrincipal() instanceof SecurityPrincipal principal
+                ? String.valueOf(principal.userId())
+                : "unknown";
     }
 
     private static String noEndpointMessage(WebRequest request) {

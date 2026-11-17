@@ -1,10 +1,13 @@
 package com.pulsepass.controller;
 
 import com.pulsepass.FixedClockTestConfiguration;
+import com.pulsepass.domain.enums.Role;
 import com.pulsepass.dto.request.RegisterUserRequest;
 import com.pulsepass.exception.BusinessRuleException;
 import com.pulsepass.exception.DuplicateResourceException;
 import com.pulsepass.exception.ResourceNotFoundException;
+import com.pulsepass.security.WebSecurityTestConfiguration;
+import com.pulsepass.security.WithSecurityPrincipal;
 import com.pulsepass.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,7 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * handler. Los JSON van escritos como texto (P3-D12).
  */
 @WebMvcTest(UserController.class)
-@Import(FixedClockTestConfiguration.class)
+@Import({FixedClockTestConfiguration.class, WebSecurityTestConfiguration.class})
 class UserControllerTest {
 
     /** JSON del registro de Andrea; debe coincidir campo a campo con {@code andreaRegisterRequest()}. */
@@ -206,6 +209,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-USR-004: GET /api/users/by-email?email=andrea@email.com → 200; el valor llega sin cambios")
+    @WithSecurityPrincipal(roles = Role.USER)
     void findByEmailReturns200WithUser() throws Exception {
         // ARRANGE
         when(userService.findByEmail(ANDREA_EMAIL)).thenReturn(andreaResponse());
@@ -226,6 +230,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("FR-CTRL-USR-002: email inexistente → 404 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.USER)
     void findByEmailReturns404WhenUserDoesNotExist() throws Exception {
         // ARRANGE
         when(userService.findByEmail("nadie@email.com")) // DATO DE PRUEBA
@@ -243,6 +248,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("QT-CTRL-007: sin el parámetro email → 400 y no se llama al servicio")
+    @WithSecurityPrincipal(roles = Role.USER)
     void findByEmailReturns400WhenParameterIsMissing() throws Exception {
         // ACT
         ResultActions result = mockMvc.perform(get("/api/users/by-email"));
@@ -260,6 +266,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-USR-005: GET /api/users/by-username?username=andrea → 200; el valor llega sin cambios")
+    @WithSecurityPrincipal(roles = Role.USER)
     void findByUsernameReturns200WithUser() throws Exception {
         // ARRANGE
         when(userService.findByUsername(ANDREA_USERNAME)).thenReturn(andreaResponse());
@@ -280,6 +287,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("FR-CTRL-USR-003: username inexistente → 404 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.USER)
     void findByUsernameReturns404WhenUserDoesNotExist() throws Exception {
         // ARRANGE
         when(userService.findByUsername("inexistente")) // DATO DE PRUEBA
@@ -297,6 +305,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("QT-CTRL-007: sin el parámetro username → 400 y no se llama al servicio")
+    @WithSecurityPrincipal(roles = Role.USER)
     void findByUsernameReturns400WhenParameterIsMissing() throws Exception {
         // ACT
         ResultActions result = mockMvc.perform(get("/api/users/by-username"));

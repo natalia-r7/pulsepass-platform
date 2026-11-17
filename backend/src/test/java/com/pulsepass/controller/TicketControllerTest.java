@@ -1,9 +1,12 @@
 package com.pulsepass.controller;
 
 import com.pulsepass.FixedClockTestConfiguration;
+import com.pulsepass.domain.enums.Role;
 import com.pulsepass.domain.enums.TicketStatus;
 import com.pulsepass.exception.BusinessRuleException;
 import com.pulsepass.exception.ResourceNotFoundException;
+import com.pulsepass.security.WebSecurityTestConfiguration;
+import com.pulsepass.security.WithSecurityPrincipal;
 import com.pulsepass.service.TicketService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,7 +57,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * garantiza el servicio (P2-D7), así que la prueba lo comprueba tal cual.
  */
 @WebMvcTest(TicketController.class)
-@Import(FixedClockTestConfiguration.class)
+@Import({FixedClockTestConfiguration.class, WebSecurityTestConfiguration.class})
+@WithSecurityPrincipal(roles = Role.USER)
 class TicketControllerTest {
 
     /** JSON de la compra de Andrea; debe coincidir campo a campo con {@code andreaPurchaseRequest()}. */
@@ -324,6 +328,7 @@ class TicketControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-TKT-007: GET /api/events/CMF-2026/tickets/paid → 200 con los tickets PAID")
+    @WithSecurityPrincipal(roles = Role.STAFF)
     void findPaidTicketsByEventReturns200WithList() throws Exception {
         // ARRANGE
         when(ticketService.findPaidTicketsByEvent(CMF_2026_CODE))
@@ -343,6 +348,7 @@ class TicketControllerTest {
 
     @Test
     @DisplayName("P2-13 TK-7: evento sin tickets pagados → 200 con una lista vacía (no 404)")
+    @WithSecurityPrincipal(roles = Role.STAFF)
     void findPaidTicketsByEventReturns200WithEmptyList() throws Exception {
         // ARRANGE
         when(ticketService.findPaidTicketsByEvent("XXX-0000")).thenReturn(List.of()); // DATO DE PRUEBA
@@ -431,6 +437,7 @@ class TicketControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-TKT-010 / AC-CTRL-013: usar un ticket PAID → 200 con el ticket USED")
+    @WithSecurityPrincipal(roles = Role.STAFF)
     void markAsUsedReturns200WithUsedTicket() throws Exception {
         // ARRANGE
         when(ticketService.markAsUsed(ANDREA_TICKET_CODE))
@@ -448,6 +455,7 @@ class TicketControllerTest {
 
     @Test
     @DisplayName("TEST-CTRL-TKT-011 / AC-CTRL-014: usar un ticket CANCELLED → 409 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.STAFF)
     void markAsUsedReturns409WhenTicketIsCancelled() throws Exception {
         // ARRANGE
         when(ticketService.markAsUsed(ANDREA_TICKET_CODE))
@@ -465,6 +473,7 @@ class TicketControllerTest {
 
     @Test
     @DisplayName("FR-CTRL-TKT-006: usar un ticket inexistente → 404 con ErrorResponse")
+    @WithSecurityPrincipal(roles = Role.STAFF)
     void markAsUsedReturns404WhenTicketDoesNotExist() throws Exception {
         // ARRANGE
         when(ticketService.markAsUsed(UNKNOWN_TICKET_CODE))
