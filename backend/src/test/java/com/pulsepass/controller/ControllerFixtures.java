@@ -2,14 +2,19 @@ package com.pulsepass.controller;
 
 import com.pulsepass.domain.enums.EventCategory;
 import com.pulsepass.domain.enums.EventStatus;
+import com.pulsepass.domain.enums.TicketStatus;
+import com.pulsepass.domain.enums.TicketType;
 import com.pulsepass.dto.request.CreateEventRequest;
+import com.pulsepass.dto.request.PurchaseTicketRequest;
 import com.pulsepass.dto.request.RegisterUserRequest;
 import com.pulsepass.dto.response.ArtistResponse;
 import com.pulsepass.dto.response.EventResponse;
 import com.pulsepass.dto.response.EventSummaryResponse;
+import com.pulsepass.dto.response.TicketResponse;
 import com.pulsepass.dto.response.UserResponse;
 import com.pulsepass.dto.response.VenueResponse;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -181,5 +186,48 @@ public final class ControllerFixtures {
                 CMF_2026_EVENT_DATE,         // DATO DE PRUEBA
                 VEN_SMR_01_CODE,             // PRD §23.1
                 venSmr01Response().name());  // PRD §23.1
+    }
+
+    // ---------------------------------------------------------------- Tickets (P3-09 TKC-4)
+
+    // PRD de Servicios §54: «Andrea quiere comprar una entrada VIP para CMF-2026». Los códigos
+    // siguen el formato de P2-D3 (TKT- + 6 hexadecimales) y son DATO DE PRUEBA. El precio es el
+    // importe de VIP aprobado en P2-12 TP-2 (DATO DE DISEÑO, no un valor del PRD).
+
+    /** DATO DE PRUEBA: código del ticket de Andrea (el del ejemplo del PRD de Frontend). */
+    public static final String ANDREA_TICKET_CODE = "TKT-8F2A1C";
+
+    /** DATO DE PRUEBA: código de un segundo ticket de Andrea. */
+    public static final String ANDREA_SECOND_TICKET_CODE = "TKT-91B07D";
+
+    /** DATO DE DISEÑO (P2-12 TP-2): precio de un ticket VIP. */
+    public static final BigDecimal VIP_PRICE = new BigDecimal("200000.00");
+
+    /** DATO DE PRUEBA: fecha de compra (el «ahora» de las pruebas de servicio). */
+    public static final LocalDateTime PURCHASE_DATE = LocalDateTime.of(2026, 11, 15, 12, 0);
+
+    /** Compra de un ticket VIP de CMF-2026 por Andrea (PRD de Servicios §54). */
+    public static PurchaseTicketRequest andreaPurchaseRequest() {
+        return new PurchaseTicketRequest(
+                ANDREA_EMAIL,                // PRD Servicios §47
+                CMF_2026_CODE,               // PRD §23.2
+                TicketType.VIP);             // PRD Servicios §54
+    }
+
+    /**
+     * Ticket VIP de Andrea en CMF-2026, con el código y el estado que pida cada prueba. El
+     * {@code id} (DATO DE PRUEBA) es 1 para {@link #ANDREA_TICKET_CODE} y 2 para cualquier otro.
+     */
+    public static TicketResponse andreaTicketResponse(String ticketCode, TicketStatus status) {
+        return new TicketResponse(
+                ANDREA_TICKET_CODE.equals(ticketCode) ? 1L : 2L, // DATO DE PRUEBA
+                ticketCode,                  // DATO DE PRUEBA
+                TicketType.VIP,              // PRD Servicios §54
+                VIP_PRICE,                   // DATO DE DISEÑO (TP-2)
+                status,
+                PURCHASE_DATE,               // DATO DE PRUEBA
+                ANDREA_EMAIL,                // PRD Servicios §47
+                CMF_2026_CODE,               // PRD §23.2
+                CMF_2026_NAME);              // PRD §23.2
     }
 }
