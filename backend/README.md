@@ -21,7 +21,7 @@ y el frontend.
 |---|---|---|---|
 | 1 — Persistencia | Persistencia | Cerrada | Commit `35b3ac6`, etiqueta `fase-1-persistencia` |
 | 2 — Servicios | Capa de Servicios | Cerrada | Commit `c863210`, etiqueta `fase-2-servicios`; [DoD](#definition-of-done-de-la-fase-2) en este documento |
-| 3 — Controladores REST | Capa de Controladores REST | En cierre (P3-10) | Suite completa verde sobre `7e1f386`; [DoD](#definition-of-done-de-la-fase-3) en este documento |
+| 3 — Controladores REST | Capa de Controladores REST | Cerrada | Suite completa verde sobre `7e1f386`; [DoD](#definition-of-done-de-la-fase-3) en este documento |
 
 ## Tecnologías
 
