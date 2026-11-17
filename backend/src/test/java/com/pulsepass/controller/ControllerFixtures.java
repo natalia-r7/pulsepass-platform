@@ -1,7 +1,11 @@
 package com.pulsepass.controller;
 
+import com.pulsepass.dto.request.RegisterUserRequest;
 import com.pulsepass.dto.response.ArtistResponse;
+import com.pulsepass.dto.response.UserResponse;
 import com.pulsepass.dto.response.VenueResponse;
+
+import java.time.LocalDate;
 
 /**
  * Datos de prueba de la capa de controladores (P3-D12).
@@ -70,5 +74,46 @@ public final class ControllerFixtures {
                 null,                        // §23 no da el país
                 null,                        // §23 no da el género
                 true);                       // DATO DE PRUEBA: active
+    }
+
+    // ---------------------------------------------------------------- Users (P3-07 US-1)
+
+    // §23.4 solo dice «Andrea — adulta — active=true». El email viene del PRD de Servicios §47.
+    // username, lastName y birthDate son DATO DE PRUEBA, los mismos que en ServiceFixtures
+    // (25 años en la fecha de CMF-2026). phone y city quedan en null.
+
+    /** Email de Andrea (PRD de Servicios §47). */
+    public static final String ANDREA_EMAIL = "andrea@email.com";
+
+    /** DATO DE PRUEBA: username de Andrea (el mismo que en ServiceFixtures). */
+    public static final String ANDREA_USERNAME = "andrea";
+
+    /** DATO DE PRUEBA: fecha de nacimiento de Andrea (la misma que en ServiceFixtures). */
+    private static final LocalDate ANDREA_BIRTH_DATE = LocalDate.of(2001, 6, 15);
+
+    /** Registro de Andrea, sin phone ni city (opcionales). */
+    public static RegisterUserRequest andreaRegisterRequest() {
+        return new RegisterUserRequest(
+                ANDREA_USERNAME,             // DATO DE PRUEBA
+                ANDREA_EMAIL,                // PRD Servicios §47
+                "Andrea",                    // PRD §23.4
+                "Rojas",                     // DATO DE PRUEBA
+                null,                        // phone (opcional)
+                null,                        // city (opcional)
+                ANDREA_BIRTH_DATE);          // DATO DE PRUEBA
+    }
+
+    /** Usuario Andrea tal como lo devuelve el servicio tras registrarla. */
+    public static UserResponse andreaResponse() {
+        return new UserResponse(
+                1L,                          // DATO DE PRUEBA
+                ANDREA_USERNAME,             // DATO DE PRUEBA
+                ANDREA_EMAIL,                // PRD Servicios §47
+                true,                        // PRD §23.4 active
+                "Andrea",                    // PRD §23.4
+                "Rojas",                     // DATO DE PRUEBA
+                null,                        // phone
+                null,                        // city
+                ANDREA_BIRTH_DATE);          // DATO DE PRUEBA
     }
 }
