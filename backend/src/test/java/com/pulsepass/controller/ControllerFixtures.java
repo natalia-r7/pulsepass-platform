@@ -1,5 +1,6 @@
 package com.pulsepass.controller;
 
+import com.pulsepass.dto.response.ArtistResponse;
 import com.pulsepass.dto.response.VenueResponse;
 
 /**
@@ -31,5 +32,43 @@ public final class ControllerFixtures {
                 null,                        // §23 no da la dirección
                 3,                           // PRD §23.1 capacity
                 true);                       // PRD §23.1 active
+    }
+
+    // ---------------------------------------------------------------- Artists (P3-06 AR-1)
+
+    // §23.3 solo da el nombre artístico. country y genre quedan en null, como en V2 y en
+    // ServiceFixtures (A8); active = true es la misma inferencia documentada para V2.
+
+    /** Nombre artístico de Solar Beat (PRD §23.3). */
+    public static final String SOLAR_BEAT = "Solar Beat";
+
+    /** Nombre artístico de Neon Waves (PRD §23.3). */
+    public static final String NEON_WAVES = "Neon Waves";
+
+    /** Nombre artístico de Caribbean Sound (PRD §23.3). */
+    public static final String CARIBBEAN_SOUND = "Caribbean Sound";
+
+    /** Solar Beat (PRD §23.3). */
+    public static ArtistResponse solarBeatResponse() {
+        return artist(1L, SOLAR_BEAT); // DATO DE PRUEBA: id
+    }
+
+    /** Neon Waves (PRD §23.3). */
+    public static ArtistResponse neonWavesResponse() {
+        return artist(2L, NEON_WAVES); // DATO DE PRUEBA: id
+    }
+
+    /** Caribbean Sound (PRD §23.3). */
+    public static ArtistResponse caribbeanSoundResponse() {
+        return artist(3L, CARIBBEAN_SOUND); // DATO DE PRUEBA: id
+    }
+
+    private static ArtistResponse artist(Long id, String stageName) {
+        return new ArtistResponse(
+                id,
+                stageName,                   // PRD §23.3
+                null,                        // §23 no da el país
+                null,                        // §23 no da el género
+                true);                       // DATO DE PRUEBA: active
     }
 }
