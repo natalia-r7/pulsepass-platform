@@ -1,0 +1,10 @@
+# Configuración adicional SOLO para las pruebas (P4-D18, P4-03-h).
+# Spring Boot carga classpath:/config/application.yml además del application.yml principal y le da
+# prioridad, así que este archivo añade valores sin ocultar la configuración de producción.
+#
+# DATO DE PRUEBA: clave exclusiva de las pruebas, sin ningún valor real (PRD Seguridad §14.2).
+# Es el texto "pulsepass-test-only-not-a-secret" (32 bytes) codificado en Base64.
+pulsepass:
+  security:
+    jwt:
+      secret-base64: cHVsc2VwYXNzLXRlc3Qtb25seS1ub3QtYS1zZWNyZXQ=

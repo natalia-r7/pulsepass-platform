@@ -11,3 +11,12 @@ spring:
         # comprobación de nulos. Se reactiva para conservar el rechazo antes del INSERT que
         # verifican las pruebas de la Fase 1 (relaciones obligatorias venue, user y event).
         check_nullability: true
+
+# PRD de Seguridad §14.2 (P4-03): configuración del JWT de acceso. El secreto se lee siempre del
+# entorno; sin PULSEPASS_JWT_SECRET_BASE64 la aplicación no arranca (§12.2). Nunca un valor real aquí.
+pulsepass:
+  security:
+    jwt:
+      issuer: ${PULSEPASS_JWT_ISSUER:pulsepass-api}
+      secret-base64: ${PULSEPASS_JWT_SECRET_BASE64}
+      access-token-ttl: PT15M
