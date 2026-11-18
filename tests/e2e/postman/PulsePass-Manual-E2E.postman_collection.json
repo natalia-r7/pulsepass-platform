@@ -3571,6 +3571,445 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "TC-SEC-017-ME · GET /me STAFF sin rol (token anterior)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-017-ME — TC-SEC-017\n\n**Objetivo:** Comprobar que el servidor recarga los roles en cada petición.\n\n**Orden (P5-01):** E6, paso 36 (después del SQL `revoke-staff`)\n\n**Precondiciones:** Último uso de STAFF. `staffToken` debe haberse emitido hace menos de 15 minutos: si no, reenviar E2E-AUTH-01-STAFF y E2E-AUTH-02-STAFF (200, `[\"STAFF\"]`) ANTES del SQL; así un 401 por caducidad no se confunde con la denegación. Después aplicar el paso SQL `revoke-staff` (`tests/e2e/fixtures/README.md` §7) y NO volver a hacer login de STAFF.\n\n**Autorización:** Bearer {{staffToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)`: misma identidad de STAFF y `roles = []`. El token sigue siendo válido (no hay revocación, limitación conocida), pero ya no tiene privilegios.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-017 · PATCH usar T3 con el token anterior de STAFF",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticket3Code}}/use",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticket3Code}}",
+                "use"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-017 — TC-SEC-017\n\n**Objetivo:** Un privilegio retirado pierde vigencia en la siguiente petición.\n\n**Orden (P5-01):** E6, paso 36\n\n**Precondiciones:** TC-SEC-017-ME respondió `roles = []`; T3 en PAID (no se ha usado desde E4).\n\n**Autorización:** Bearer {{staffToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Access denied» (autenticado, sin rol STAFF ni ADMIN). Un 401 indicaría que el token caducó antes de la prueba: registrar FAIL con esa observación (no se puede repetir, el rol ya se retiró). Integridad: TC-SEC-017-CHK.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-017-CHK · GET ticket T3 (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticket3Code}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticket3Code}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-017-CHK — TC-SEC-017 (integridad)\n\n**Objetivo:** Confirmar que T3 no cambió.\n\n**Orden (P5-01):** E6, paso 36\n\n**Precondiciones:** TC-SEC-017 ejecutado; `adminToken` vigente. Si un token caducó (15 min), repetir su login con la petición existente de P5-04 antes de continuar.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `TicketResponse(id, ticketCode, type, price, status, purchaseDate, userEmail, eventCode, eventName)`; `ticketCode` = T3, propietario A, `status = PAID`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-010-LOGIN · POST login USER_A con TTL de 1 minuto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-010-LOGIN — TC-AUTH-010 (preparación)\n\n**Objetivo:** Emitir un token de corta duración.\n\n**Orden (P5-01):** E7, paso 37 (b; reinicio a: 1 de 6)\n\n**Precondiciones:** Bloque JWT, solo USER_A. Reinicio: en la terminal de la aplicación, detenerla con Ctrl+C y, desde `backend/` y en la misma terminal (con `SPRING_DATASOURCE_*` y la clave de la sesión, K1, exportadas; nunca exportar valores nuevos), ejecutar `PULSEPASS_JWT_ACCESS_TOKEN_TTL=PT1M ./mvnw spring-boot:run`. Esperar «Started PulsepassApplication» y comprobar con CONN-01 (200). Cambiar el TTL no caduca tokens ya emitidos: hace falta este token nuevo (F5-F).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse(accessToken, tokenType, expiresIn)`: `tokenType = Bearer` y `expiresIn = 60` (no `{{expectedTokenTtlSeconds}}`). Anotar la hora del login.\n\n**Copiar:** solo el valor de `accessToken` al valor local de `expiredTestToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userAUsername}}\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-010-CTRL · GET /me con el token de 1 minuto (vigente)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{expiredTestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-010-CTRL — TC-AUTH-010 (control)\n\n**Objetivo:** Demostrar que el token es válido antes de caducar.\n\n**Orden (P5-01):** E7, paso 37 (c)\n\n**Precondiciones:** Enviar inmediatamente después de TC-AUTH-010-LOGIN.\n\n**Autorización:** Bearer {{expiredTestToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)` con la identidad de USER_A y `roles = [\"USER\"]`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-010 · GET /me con el token caducado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{expiredTestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-010 — TC-AUTH-010\n\n**Objetivo:** Un JWT caducado no autentica.\n\n**Orden (P5-01):** E7, paso 37 (d)\n\n**Precondiciones:** Esperar al menos 70 segundos desde el login (TTL 60 s, margen de reloj 0) y reenviar con el mismo `expiredTestToken`, sin nuevo login.\n\n**Autorización:** Bearer {{expiredTestToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; ningún dato de A. Anotar la hora del envío (≥ 70 s tras el login).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-011a-LOGIN · POST login USER_A antes de cambiar la clave",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-011a-LOGIN — TC-AUTH-011 (otra clave, preparación)\n\n**Objetivo:** Emitir un token firmado con K1.\n\n**Orden (P5-01):** E7, paso 37 (f; reinicio e: 2 de 6)\n\n**Precondiciones:** Reinicio: en la terminal de la aplicación, detenerla con Ctrl+C y, desde `backend/` y en la misma terminal (con `SPRING_DATASOURCE_*` y la clave de la sesión, K1, exportadas; nunca exportar valores nuevos), ejecutar `./mvnw spring-boot:run`. Esperar «Started PulsepassApplication» y comprobar con CONN-01 (200). (configuración normal: K1, PT15M y emisor por defecto).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse`: `tokenType = Bearer` y `expiresIn = {{expectedTokenTtlSeconds}}` (900).\n\n**Copiar:** solo el valor de `accessToken` al valor local de `otherKeyTestToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userAUsername}}\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-011a-CTRL · GET /me con el token firmado con K1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherKeyTestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-011a-CTRL — TC-AUTH-011 (otra clave, control)\n\n**Objetivo:** El token es válido con K1.\n\n**Orden (P5-01):** E7, paso 37 (f)\n\n**Precondiciones:** TC-AUTH-011a-LOGIN ejecutado, sin reiniciar todavía.\n\n**Autorización:** Bearer {{otherKeyTestToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)` con la identidad de USER_A y `roles = [\"USER\"]`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-011a · GET /me tras cambiar la clave",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherKeyTestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-011a — TC-AUTH-011 (otra clave)\n\n**Objetivo:** Un token firmado con otra clave no autentica.\n\n**Orden (P5-01):** E7, paso 37 (h; reinicio g: 3 de 6)\n\n**Precondiciones:** Reinicio: en la terminal de la aplicación, detenerla con Ctrl+C y, desde `backend/` y en la misma terminal (con `SPRING_DATASOURCE_*` y la clave de la sesión, K1, exportadas; nunca exportar valores nuevos), ejecutar `PULSEPASS_JWT_SECRET_BASE64=\"$(openssl rand -base64 32)\" ./mvnw spring-boot:run`. Esperar «Started PulsepassApplication» y comprobar con CONN-01 (200). Esa clave K2 se pasa en línea solo a este proceso: no se exporta ni se guarda, y K1 sigue en la sesión. Mismo emisor y TTL. Reutilizar `otherKeyTestToken` (emitido con K1), sin nuevo login.\n\n**Autorización:** Bearer {{otherKeyTestToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos. Después, control (i): reenviar E2E-AUTH-01 (200), copiar el nuevo `accessToken` al valor local de `userAToken` y, solo entonces, reenviar E2E-AUTH-02 (200): un token nuevo sí funciona con K2.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-011b-LOGIN · POST login USER_A antes de cambiar el emisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-011b-LOGIN — TC-AUTH-011 (otro emisor, preparación)\n\n**Objetivo:** Emitir un token con el emisor por defecto.\n\n**Orden (P5-01):** E7, paso 37 (k; reinicio j: 4 de 6)\n\n**Precondiciones:** Reinicio: en la terminal de la aplicación, detenerla con Ctrl+C y, desde `backend/` y en la misma terminal (con `SPRING_DATASOURCE_*` y la clave de la sesión, K1, exportadas; nunca exportar valores nuevos), ejecutar `./mvnw spring-boot:run`. Esperar «Started PulsepassApplication» y comprobar con CONN-01 (200). (vuelve K1, la clave de la sesión).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse`: `tokenType = Bearer` y `expiresIn = {{expectedTokenTtlSeconds}}` (900).\n\n**Copiar:** solo el valor de `accessToken` al valor local de `otherIssuerTestToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userAUsername}}\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-011b-CTRL · GET /me con el token del emisor por defecto",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherIssuerTestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-011b-CTRL — TC-AUTH-011 (otro emisor, control)\n\n**Objetivo:** El token es válido con el emisor `{{expectedIssuer}}`.\n\n**Orden (P5-01):** E7, paso 37 (k)\n\n**Precondiciones:** TC-AUTH-011b-LOGIN ejecutado, sin reiniciar todavía.\n\n**Autorización:** Bearer {{otherIssuerTestToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)` con la identidad de USER_A y `roles = [\"USER\"]`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-011b · GET /me tras cambiar el emisor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherIssuerTestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-011b — TC-AUTH-011 (otro emisor)\n\n**Objetivo:** Un token con otro emisor (`iss`) no autentica.\n\n**Orden (P5-01):** E7, paso 37 (m; reinicio l: 5 de 6)\n\n**Precondiciones:** Reinicio: en la terminal de la aplicación, detenerla con Ctrl+C y, desde `backend/` y en la misma terminal (con `SPRING_DATASOURCE_*` y la clave de la sesión, K1, exportadas; nunca exportar valores nuevos), ejecutar `PULSEPASS_JWT_ISSUER=pulsepass-e2e-alt ./mvnw spring-boot:run`. Esperar «Started PulsepassApplication» y comprobar con CONN-01 (200). Misma clave K1; `pulsepass-e2e-alt` es DATO DE PRUEBA. Reutilizar `otherIssuerTestToken`, sin nuevo login.\n\n**Autorización:** Bearer {{otherIssuerTestToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos. Después: control (n): reenviar E2E-AUTH-01 (200), copiar el nuevo `accessToken` al valor local de `userAToken` y, solo entonces, reenviar E2E-AUTH-02 (200). Cierre (o; reinicio 6 de 6): Ctrl+C y `./mvnw spring-boot:run` para volver a la configuración normal de la sesión (K1, PT15M, `pulsepass-api`); los tokens emitidos con el emisor alternativo dejan de valer. Por último, vaciar a mano los valores locales de `expiredTestToken`, `otherKeyTestToken` y `otherIssuerTestToken` en el ambiente. Fin del orden E0–E7.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
         }
       ],
       "auth": {
@@ -3580,7 +4019,745 @@
     {
       "name": "08 Validaciones y errores HTTP",
       "description": "Casos 400/404/409 y contrato ErrorResponse (TC-HTTP, TC-BIZ-015). Se completan en P5-06.",
-      "item": [],
+      "item": [
+        {
+          "name": "TC-HTTP-001 · POST registro con cuerpo vacío",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-HTTP-001 — TC-HTTP (campos obligatorios ausentes)\n\n**Objetivo:** Rechazar un registro sin campos obligatorios.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** Ninguna.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 400\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Validation failed»; `details` con `birthDate`, `email`, `firstName`, `lastName`, `password` y `username` (los opcionales `phone` y `city` no aparecen). Ningún usuario creado. Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-002 · POST registro con email mal formado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-HTTP-002 — TC-HTTP (email mal formado)\n\n**Objetivo:** Rechazar un email con formato inválido.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** Solo el email es inválido (`no-es-un-email`); el resto del cuerpo es válido, con el username nuevo `invalid-{runId}` y `{{userAPassword}}`. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 400\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Validation failed»; `details.email` = «Email must be a valid email address». Ningún usuario creado. Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"invalid-{{runId}}\",\n  \"email\": \"no-es-un-email\",\n  \"firstName\": \"Formato\",\n  \"lastName\": \"Invalido\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-003 · POST registro con JSON inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-HTTP-003 — TC-HTTP (JSON inválido)\n\n**Objetivo:** Rechazar un cuerpo que no es JSON válido.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** El cuerpo está truncado a propósito (`{\"username\": `): no corregirlo. Es la segunda excepción explícita del validador (P5-06-b).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 400\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Malformed JSON request». Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-004 · POST crear evento con categoría inválida (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-HTTP-004 — TC-HTTP (enum inválido)\n\n**Objetivo:** Rechazar un valor de enum inexistente.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** `adminToken` vigente. `category = \"CONCIERTO\"` no existe en `EventCategory`; código `E2E-{{runId}}-BAD` (nunca debe existir). Si un token caducó (15 min), repetir su login con la petición existente de P5-04 antes de continuar.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 400\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Malformed JSON request». Integridad: TC-BIZ-015-CHK. Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"E2E-{{runId}}-BAD\",\n  \"name\": \"PulsePass E2E BAD {{runId}}\",\n  \"description\": \"Evento que nunca debe crearse\",\n  \"category\": \"CONCIERTO\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-005 · POST crear evento sin campos obligatorios (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-HTTP-005 — TC-HTTP (campos obligatorios ausentes)\n\n**Objetivo:** Rechazar un evento incompleto.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** `adminToken` vigente. Solo se envía `eventCode` = `E2E-{{runId}}-BAD`.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 400\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Validation failed»; `details` con `category`, `eventDate`, `minimumAge`, `name` y `venueCode`. Integridad: TC-BIZ-015-CHK. Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"E2E-{{runId}}-BAD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-006 · GET artista por nombre sin parámetro",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/artists/by-stage-name",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "artists",
+                "by-stage-name"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-HTTP-006 — TC-HTTP (parámetro ausente)\n\n**Objetivo:** Rechazar una consulta sin su parámetro obligatorio.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** Ninguna. La URL no lleva `stageName` a propósito.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 400\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Required parameter 'stageName' is missing». Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-007 · GET artista con id no numérico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/artists/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "artists",
+                "abc"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-HTTP-007 — TC-HTTP (tipo inválido)\n\n**Objetivo:** Rechazar un id que no es numérico.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** Ninguna. `abc` es un valor inválido a propósito.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 400\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Invalid value for parameter 'id'». Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-008 · GET venue inexistente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/E2E-{{runId}}-NOPE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "E2E-{{runId}}-NOPE"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-HTTP-008 — TC-HTTP (404) — política de E2E-VEN-01\n\n**Objetivo:** Un código de venue ausente responde 404.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** Ningún venue `E2E-{{runId}}-NOPE`.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Venue not found: …». Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-009 · GET artista inexistente por id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/artists/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "artists",
+                "999999999"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-HTTP-009 — TC-HTTP (404) — política de E2E-ART-01\n\n**Objetivo:** Un id de artista ausente responde 404.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** Ningún artista con id 999999999 (DATO DE PRUEBA).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Artist not found: 999999999». Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-010 · GET artista inexistente por nombre",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/artists/by-stage-name?stageName=NoExiste-{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "artists",
+                "by-stage-name"
+              ],
+              "query": [
+                {
+                  "key": "stageName",
+                  "value": "NoExiste-{{runId}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-HTTP-010 — TC-HTTP (404) — política de E2E-ART-02\n\n**Objetivo:** Un nombre artístico ausente responde 404.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** Ningún artista llamado `NoExiste-{runId}`.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Artist not found: NoExiste-…». Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-011 · GET evento inexistente (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/E2E-{{runId}}-NOPE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "E2E-{{runId}}-NOPE"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-HTTP-011 — TC-HTTP (404)\n\n**Objetivo:** Un código de evento ausente responde 404.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** `adminToken` vigente; ningún evento `E2E-{{runId}}-NOPE`. Se usa ADMIN porque para él un borrador respondería 200: el 404 solo puede significar inexistente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Event not found: …». Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-012 · GET ticket inexistente (USER_A)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/NOEXISTE-{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "NOEXISTE-{{runId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-HTTP-012 — TC-HTTP (404) — política P4-D1\n\n**Objetivo:** Un ticket inexistente responde 404, no 403.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** `userAToken` vigente; ningún ticket `NOEXISTE-{runId}`.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Ticket not found: …» (para un ticket ajeno existente sería 403). Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-013 · POST asociar artista inexistente a MAIN (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{publishedEventCode}}/artists/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{publishedEventCode}}",
+                "artists",
+                "999999999"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-HTTP-013 — TC-HTTP (404)\n\n**Objetivo:** Asociar un artista inexistente responde 404.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** MAIN publicado; `adminToken` vigente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Artist not found: 999999999». MAIN no cambia (reenviar E2E-EVT-02: mismo artista). Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-014 · POST comprar en evento inexistente (USER_A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-HTTP-014 — TC-HTTP (404) — BR-TICKET-003\n\n**Objetivo:** Comprar en un evento inexistente responde 404.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** `userAToken` vigente; compra con su propio email en `E2E-{{runId}}-NOPE`. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Event not found: …». Ningún ticket nuevo. Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userAEmail}}\",\n  \"eventCode\": \"E2E-{{runId}}-NOPE\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-015a · POST crear evento con código duplicado (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-015a — TC-BIZ-015 (código duplicado, BR-EVENT-001)\n\n**Objetivo:** Rechazar un `eventCode` ya existente.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** MAIN existe; `adminToken` vigente. Cuerpo válido salvo el código repetido (`{{publishedEventCode}}`). Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Event already exists: …» (BR-EVENT-001 es la primera regla de `create`). Integridad: reenviar E2E-EVT-02 (MAIN sigue PUBLISHED, sin cambios). Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"{{publishedEventCode}}\",\n  \"name\": \"PulsePass E2E DUP {{runId}}\",\n  \"description\": \"Evento que nunca debe crearse\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-015b · POST crear evento con fecha pasada (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-015b — TC-BIZ-015 (fecha pasada, BR-EVENT-004)\n\n**Objetivo:** Rechazar un evento con fecha no futura.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** `adminToken` vigente. Código `E2E-{{runId}}-BAD`, venue V0 (existe y está activo) y fecha `2020-01-01T20:00:00`. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Event date must be in the future: …». Integridad: TC-BIZ-015-CHK. Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"E2E-{{runId}}-BAD\",\n  \"name\": \"PulsePass E2E BAD {{runId}}\",\n  \"description\": \"Evento que nunca debe crearse\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2020-01-01T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-015c · POST crear evento en venue inexistente (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-015c — TC-BIZ-015 (venue inexistente, BR-EVENT-002)\n\n**Objetivo:** Un venue inexistente responde 404.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** `adminToken` vigente. Código `E2E-{{runId}}-BAD`, venue `E2E-{{runId}}-NOPE` y fecha futura. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Venue not found: …». Integridad: TC-BIZ-015-CHK. Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"E2E-{{runId}}-BAD\",\n  \"name\": \"PulsePass E2E BAD {{runId}}\",\n  \"description\": \"Evento que nunca debe crearse\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"E2E-{{runId}}-NOPE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-015d · POST crear evento en venue inactivo (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-015d — TC-BIZ-015 (venue inactivo, BR-EVENT-003)\n\n**Objetivo:** Un venue inactivo no admite eventos.\n\n**Orden (P5-01):** E5, paso 35\n\n**Precondiciones:** `adminToken` vigente. Requiere el venue `E2E-{runId}-VX`, que solo existe si en E0 se ejecutó el paso `venues` con `-v inactive_venue=on` (opcional, P5-01-d). Si VX no existe, NO enviar: registrar BLOCKED (FR-E2E-015), nunca PASS; si se envía sin VX, el 404 «Venue not found» también es BLOCKED. Código `E2E-{{runId}}-BAD` y fecha futura. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Venue is not active: E2E-…-VX». Integridad: TC-BIZ-015-CHK. Un 500 es FAIL (§9.5).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"E2E-{{runId}}-BAD\",\n  \"name\": \"PulsePass E2E BAD {{runId}}\",\n  \"description\": \"Evento que nunca debe crearse\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"E2E-{{runId}}-VX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-015-CHK · GET evento BAD (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/E2E-{{runId}}-BAD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "E2E-{{runId}}-BAD"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-015-CHK — TC-BIZ-015 y TC-HTTP-004/005 (integridad)\n\n**Objetivo:** Confirmar que ningún intento inválido creó el evento BAD.\n\n**Orden (P5-01):** E5, paso 35 (después de todos los intentos)\n\n**Precondiciones:** TC-HTTP-004, TC-HTTP-005 y TC-BIZ-015b/c/d ejecutados (o 015d BLOCKED); `adminToken` vigente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con sus 5 campos y `status` igual al HTTP; sin stack traces, hashes, tokens ni datos internos; mensaje «Event not found: …». Solo ADMIN distingue inexistente de borrador; un 200 sería un defecto (algún intento persistió datos).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        }
+      ],
       "auth": {
         "type": "noauth"
       }
