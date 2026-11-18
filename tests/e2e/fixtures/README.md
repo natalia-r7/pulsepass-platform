@@ -196,6 +196,7 @@ Valores marcados como DATO DE PRUEBA: el PRD no los define.
 | STAFF | `staff.{runId}@example.test` | Registro + `promote`: solo STAFF |
 | ADMIN | `admin.{runId}@example.test` | Registro + `promote`: solo ADMIN |
 | INACTIVE_USER | `inactive.{runId}@example.test` | Registro + `deactivate` |
+| ROLE_INJECTION | `roleinjection.{runId}@example.test` | Cuenta **auxiliar** de seguridad, no un actor funcional: se registra con `"role":"ADMIN"` en el cuerpo y debe quedar solo con USER (TC-SEC-016) |
 
 **Locales** (SQL, paso `venues`): `E2E-{runId}-V0` «PulsePass E2E Sede Principal», capacidad 100;
 `E2E-{runId}-V1` «PulsePass E2E Sede Aforo 1», capacidad 1; opcional `E2E-{runId}-VX` «PulsePass

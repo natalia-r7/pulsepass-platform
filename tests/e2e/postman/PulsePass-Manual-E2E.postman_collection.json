@@ -326,6 +326,707 @@
             "description": "**ID:** E2E-AUTH-02 — TC-AUTH-006\n\n**Objetivo:** Consultar la identidad del token de USER_A.\n\n**Orden (P5-01):** E2, paso 9\n\n**Precondiciones:** `userAToken` vigente.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)`: identidad de A y `roles = [\"USER\"]`; sin contraseña, hash ni token.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
           },
           "response": []
+        },
+        {
+          "name": "E2E-USR-01-B · POST registrar USER_B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-USR-01-B — TC-BIZ-006 (segundo usuario)\n\n**Objetivo:** Registrar USER_B por la API pública.\n\n**Orden (P5-01):** E2, paso 4\n\n**Precondiciones:** `userBUsername` = `userb-{runId}`, `userBEmail` = `userb.{runId}@example.test`, `userBPassword` (≥ 12 caracteres, ≤ 72 bytes) como valor local. Nombre, apellido y fecha de nacimiento: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `UserResponse(id, username, email, active, firstName, lastName, phone, city, birthDate)`; sin `password` ni hash; `active = true`; no devuelve JWT. Identidad distinta de A (otro `id`, email y username).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userBUsername}}\",\n  \"email\": \"{{userBEmail}}\",\n  \"firstName\": \"Bruno\",\n  \"lastName\": \"Pruebas\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{userBPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-USR-01-STAFF · POST registrar STAFF",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-USR-01-STAFF — F5-C (cuenta privilegiada)\n\n**Objetivo:** Registrar STAFF por la API pública.\n\n**Orden (P5-01):** E2, paso 4\n\n**Precondiciones:** `staffUsername` = `staff-{runId}`, `staffEmail` = `staff.{runId}@example.test` (el seed deriva este email), `staffPassword` como valor local. Nombre, apellido y fecha de nacimiento: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `UserResponse(id, username, email, active, firstName, lastName, phone, city, birthDate)`; sin `password` ni hash; `active = true`; no devuelve JWT. Queda con rol USER hasta el paso SQL `promote` (paso 7).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{staffUsername}}\",\n  \"email\": \"{{staffEmail}}\",\n  \"firstName\": \"Sofía\",\n  \"lastName\": \"Staff\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{staffPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-USR-01-ADMIN · POST registrar ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-USR-01-ADMIN — F5-C (cuenta privilegiada)\n\n**Objetivo:** Registrar ADMIN por la API pública.\n\n**Orden (P5-01):** E2, paso 4\n\n**Precondiciones:** `adminUsername` = `admin-{runId}`, `adminEmail` = `admin.{runId}@example.test` (el seed deriva este email), `adminPassword` como valor local. Nombre, apellido y fecha de nacimiento: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `UserResponse(id, username, email, active, firstName, lastName, phone, city, birthDate)`; sin `password` ni hash; `active = true`; no devuelve JWT. Queda con rol USER hasta el paso SQL `promote` (paso 7).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"email\": \"{{adminEmail}}\",\n  \"firstName\": \"Adrián\",\n  \"lastName\": \"Admin\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-USR-01-INACTIVE · POST registrar INACTIVE_USER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-USR-01-INACTIVE — TC-AUTH-013 (preparación)\n\n**Objetivo:** Registrar INACTIVE_USER por la API pública.\n\n**Orden (P5-01):** E2, paso 4\n\n**Precondiciones:** `inactiveUserUsername` = `inactive-{runId}`, `inactiveUserEmail` = `inactive.{runId}@example.test` (el seed deriva este email), `inactiveUserPassword` como valor local. Nombre, apellido y fecha de nacimiento: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `UserResponse(id, username, email, active, firstName, lastName, phone, city, birthDate)`; sin `password` ni hash; `active = true`; no devuelve JWT. Cuenta auxiliar: se desactiva por SQL en el paso 11.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{inactiveUserUsername}}\",\n  \"email\": \"{{inactiveUserEmail}}\",\n  \"firstName\": \"Inés\",\n  \"lastName\": \"Inactiva\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{inactiveUserPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-016 · POST registrar ROLE_INJECTION con role=ADMIN inyectado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-SEC-016 — TC-SEC-016\n\n**Objetivo:** Registrar ROLE_INJECTION con role=ADMIN inyectado por la API pública.\n\n**Orden (P5-01):** E2, paso 5\n\n**Precondiciones:** `roleInjectionUsername` = `roleinjection-{runId}`, `roleInjectionEmail` = `roleinjection.{runId}@example.test`, `roleInjectionPassword` como valor local. Cuenta auxiliar de seguridad, no es un actor funcional. El campo `role` del cuerpo es intencionado. Nombre, apellido y fecha de nacimiento: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `UserResponse(id, username, email, active, firstName, lastName, phone, city, birthDate)`; sin `password` ni hash; `active = true`; no devuelve JWT. La respuesta no incluye ningún rol. El rol efectivo se comprueba con E2E-AUTH-02-ROLEINJ: debe ser solo `[\"USER\"]` (el campo `role` se ignora, P4-06-I).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{roleInjectionUsername}}\",\n  \"email\": \"{{roleInjectionEmail}}\",\n  \"firstName\": \"Rosa\",\n  \"lastName\": \"Inyeccion\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{roleInjectionPassword}}\",\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-006a · POST registro con username duplicado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-BIZ-006a — TC-BIZ-006\n\n**Objetivo:** Rechazar un username ya registrado (BR-USER-001).\n\n**Orden (P5-01):** E2, paso 6\n\n**Precondiciones:** USER_A registrado. Solo se duplica el username: el email `dupuser.{runId}@example.test` es nuevo y el resto del cuerpo es válido, para no recibir 400. Nombre, apellido y fecha de nacimiento: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos. Anotar el mensaje observado (según el código, «Username already exists: …»; el username se comprueba antes que el email). Ningún usuario creado: verificar con TC-BIZ-006a-CHK.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userAUsername}}\",\n  \"email\": \"dupuser.{{runId}}@example.test\",\n  \"firstName\": \"Duplicado\",\n  \"lastName\": \"Username\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-006b · POST registro con email duplicado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-BIZ-006b — TC-BIZ-006\n\n**Objetivo:** Rechazar un email ya registrado (BR-USER-002).\n\n**Orden (P5-01):** E2, paso 6\n\n**Precondiciones:** USER_A registrado. Solo se duplica el email: el username `dupemail-{runId}` es nuevo y el resto del cuerpo es válido. Nombre, apellido y fecha de nacimiento: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos. Anotar el mensaje observado (según el código, «Email already exists: …»). Ningún usuario creado: verificar con TC-BIZ-006b-CHK.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"dupemail-{{runId}}\",\n  \"email\": \"{{userAEmail}}\",\n  \"firstName\": \"Duplicado\",\n  \"lastName\": \"Email\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-003 · POST login USER_A (email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-003 — TC-AUTH-003\n\n**Objetivo:** Iniciar sesión con el email en lugar del username.\n\n**Orden (P5-01):** E2, paso 8\n\n**Precondiciones:** USER_A registrado.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse(accessToken, tokenType, expiresIn)`: `accessToken` no vacío, `tokenType = Bearer`, `expiresIn = {{expectedTokenTtlSeconds}}`. Después, reenviar E2E-AUTH-02 (petición existente) y comprobar que el `id` es el mismo que con el login por username.\n\n**Copiar:** solo el valor de `accessToken` al valor local de `userAToken` (sobrescribe el anterior: es la misma identidad, P5-04-e).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userAEmail}}\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-01-B · POST login USER_B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-AUTH-01-B — FR-E2E-003/004\n\n**Objetivo:** Iniciar sesión como USER_B.\n\n**Orden (P5-01):** E2, paso 8\n\n**Precondiciones:** USER_B registrado.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse(accessToken, tokenType, expiresIn)`: `accessToken` no vacío, `tokenType = Bearer`, `expiresIn = {{expectedTokenTtlSeconds}}`.\n\n**Copiar:** solo el valor de `accessToken` al valor local de `userBToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userBUsername}}\",\n  \"password\": \"{{userBPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-01-STAFF · POST login STAFF",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-AUTH-01-STAFF — FR-E2E-003/004\n\n**Objetivo:** Iniciar sesión como STAFF.\n\n**Orden (P5-01):** E2, paso 8\n\n**Precondiciones:** STAFF registrado; paso SQL `promote` aplicado (paso 7, `tests/e2e/fixtures/README.md`). `staffIdentifier` = email de STAFF (P5-03-e).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse(accessToken, tokenType, expiresIn)`: `accessToken` no vacío, `tokenType = Bearer`, `expiresIn = {{expectedTokenTtlSeconds}}`.\n\n**Copiar:** solo el valor de `accessToken` al valor local de `staffToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{staffIdentifier}}\",\n  \"password\": \"{{staffPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-01-ADMIN · POST login ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-AUTH-01-ADMIN — FR-E2E-003/004\n\n**Objetivo:** Iniciar sesión como ADMIN.\n\n**Orden (P5-01):** E2, paso 8\n\n**Precondiciones:** ADMIN registrado; paso SQL `promote` aplicado (paso 7). `adminIdentifier` = email de ADMIN (P5-03-e).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse(accessToken, tokenType, expiresIn)`: `accessToken` no vacío, `tokenType = Bearer`, `expiresIn = {{expectedTokenTtlSeconds}}`.\n\n**Copiar:** solo el valor de `accessToken` al valor local de `adminToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{adminIdentifier}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-01-ROLEINJ · POST login ROLE_INJECTION",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-AUTH-01-ROLEINJ — TC-SEC-016\n\n**Objetivo:** Iniciar sesión como ROLE_INJECTION.\n\n**Orden (P5-01):** E2, paso 8\n\n**Precondiciones:** TC-SEC-016 ejecutado (cuenta auxiliar).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse(accessToken, tokenType, expiresIn)`: `accessToken` no vacío, `tokenType = Bearer`, `expiresIn = {{expectedTokenTtlSeconds}}`.\n\n**Copiar:** solo el valor de `accessToken` al valor local de `roleInjectionToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{roleInjectionUsername}}\",\n  \"password\": \"{{roleInjectionPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-01-INACTIVE · POST login INACTIVE_USER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-AUTH-01-INACTIVE — TC-AUTH-013 (paso 1)\n\n**Objetivo:** Iniciar sesión como INACTIVE_USER.\n\n**Orden (P5-01):** E2, paso 8\n\n**Precondiciones:** INACTIVE_USER registrado y todavía activo (cuenta auxiliar).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse(accessToken, tokenType, expiresIn)`: `accessToken` no vacío, `tokenType = Bearer`, `expiresIn = {{expectedTokenTtlSeconds}}`. Este token se reutiliza en TC-AUTH-013a tras la desactivación.\n\n**Copiar:** solo el valor de `accessToken` al valor local de `inactiveUserToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{inactiveUserUsername}}\",\n  \"password\": \"{{inactiveUserPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-02-B · GET /me USER_B",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-AUTH-02-B — TC-AUTH-006 / FR-E2E-004\n\n**Objetivo:** Comprobar la identidad y los roles efectivos de USER_B.\n\n**Orden (P5-01):** E2, paso 9\n\n**Precondiciones:** `userBToken` vigente.\n\n**Autorización:** Bearer {{userBToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)`: identidad de USER_B y `roles = [\"USER\"]`; sin contraseña, hash ni token.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-02-STAFF · GET /me STAFF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-AUTH-02-STAFF — TC-AUTH-006 / FR-E2E-004\n\n**Objetivo:** Comprobar la identidad y los roles efectivos de STAFF.\n\n**Orden (P5-01):** E2, paso 9\n\n**Precondiciones:** `staffToken` vigente; `promote` aplicado.\n\n**Autorización:** Bearer {{staffToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)`: identidad de STAFF y `roles = [\"STAFF\"]`; sin contraseña, hash ni token. Solo STAFF, sin USER (P5-02).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-02-ADMIN · GET /me ADMIN",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-AUTH-02-ADMIN — TC-AUTH-006 / FR-E2E-004\n\n**Objetivo:** Comprobar la identidad y los roles efectivos de ADMIN.\n\n**Orden (P5-01):** E2, paso 9\n\n**Precondiciones:** `adminToken` vigente; `promote` aplicado.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)`: identidad de ADMIN y `roles = [\"ADMIN\"]`; sin contraseña, hash ni token. Solo ADMIN, sin USER (P5-02-d).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-02-ROLEINJ · GET /me ROLE_INJECTION",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{roleInjectionToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-AUTH-02-ROLEINJ — TC-SEC-016\n\n**Objetivo:** Comprobar la identidad y los roles efectivos de ROLE_INJECTION.\n\n**Orden (P5-01):** E2, paso 9\n\n**Precondiciones:** `roleInjectionToken` vigente.\n\n**Autorización:** Bearer {{roleInjectionToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)`: identidad de ROLE_INJECTION y `roles = [\"USER\"]`; sin contraseña, hash ni token. Si aparece ADMIN, es un defecto de seguridad: documentarlo y detenerse (F5-H).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-02-INACTIVE · GET /me INACTIVE_USER",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{inactiveUserToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-AUTH-02-INACTIVE — TC-AUTH-013 (control)\n\n**Objetivo:** Comprobar la identidad y los roles efectivos de INACTIVE_USER.\n\n**Orden (P5-01):** E2, paso 9\n\n**Precondiciones:** `inactiveUserToken` vigente; la cuenta todavía está activa.\n\n**Autorización:** Bearer {{inactiveUserToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)`: identidad de INACTIVE_USER y `roles = [\"USER\"]`; sin contraseña, hash ni token. Demuestra que el token es válido antes de desactivar la cuenta.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
         }
       ],
       "auth": {
@@ -415,6 +1116,170 @@
               ]
             },
             "description": "**ID:** E2E-USR-03 — FR-E2E-007 (base de TC-SEC-007)\n\n**Objetivo:** USER_A consulta su propio usuario por username.\n\n**Orden (P5-01):** E2, paso 12\n\n**Precondiciones:** `userAToken` vigente.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `UserResponse(id, username, email, active, firstName, lastName, phone, city, birthDate)`; sin `password` ni hash; username de A.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-006a-CHK · GET by-email del email nuevo (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/by-email?email=dupuser.{{runId}}@example.test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "by-email"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "dupuser.{{runId}}@example.test"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-006a-CHK — TC-BIZ-006\n\n**Objetivo:** Confirmar que TC-BIZ-006a no creó ningún usuario.\n\n**Orden (P5-01):** E2, verificación del paso 6 (después del paso 8, con el token de ADMIN)\n\n**Precondiciones:** `adminToken` vigente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «User not found: …».\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-006b-CHK · GET by-username del username nuevo (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/by-username?username=dupemail-{{runId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "by-username"
+              ],
+              "query": [
+                {
+                  "key": "username",
+                  "value": "dupemail-{{runId}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-006b-CHK — TC-BIZ-006\n\n**Objetivo:** Confirmar que TC-BIZ-006b no creó ningún usuario.\n\n**Orden (P5-01):** E2, verificación del paso 6 (después del paso 8, con el token de ADMIN)\n\n**Precondiciones:** `adminToken` vigente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «User not found: …».\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-006 · GET usuario A por email (USER_B)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/by-email?email={{userAEmail}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "by-email"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{userAEmail}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-006 — TC-SEC-006\n\n**Objetivo:** USER_B intenta consultar los datos de USER_A por email.\n\n**Orden (P5-01):** E2, paso 12\n\n**Precondiciones:** `userBToken` vigente.\n\n**Autorización:** Bearer {{userBToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403 (`expectedForeignResourceStatus`)\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied»; ningún dato personal de A.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-007 · GET usuario A por username (USER_B)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/by-username?username={{userAUsername}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "by-username"
+              ],
+              "query": [
+                {
+                  "key": "username",
+                  "value": "{{userAUsername}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-007 — TC-SEC-007\n\n**Objetivo:** USER_B intenta consultar los datos de USER_A por username.\n\n**Orden (P5-01):** E2, paso 12\n\n**Precondiciones:** `userBToken` vigente.\n\n**Autorización:** Bearer {{userBToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403 (`expectedForeignResourceStatus`)\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied»; ningún dato personal de A.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
           },
           "response": []
         }
@@ -886,7 +1751,380 @@
     {
       "name": "07 Seguridad / escenarios negativos",
       "description": "Variantes negativas de autenticación, autorización e IDOR (TC-AUTH-*, TC-SEC-*), el bloque de retirada de rol (E6) y el bloque JWT (E7). Se completan en P5-04 y P5-06.",
-      "item": [],
+      "item": [
+        {
+          "name": "TC-AUTH-004 · POST login con contraseña incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-004 — TC-AUTH-004\n\n**Objetivo:** Rechazar una contraseña incorrecta sin revelar información.\n\n**Orden (P5-01):** E2, paso 10\n\n**Precondiciones:** USER_A registrado. La contraseña `ContraseñaIncorrecta-E2E` es un DATO DE PRUEBA deliberadamente erróneo, no una credencial real (excepción explícita del validador).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Invalid credentials». Comparar con TC-AUTH-005: deben ser iguales.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userAUsername}}\",\n  \"password\": \"ContraseñaIncorrecta-E2E\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-005 · POST login con identificador inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-005 — TC-AUTH-005\n\n**Objetivo:** Rechazar un identificador inexistente sin enumeración.\n\n**Orden (P5-01):** E2, paso 10\n\n**Precondiciones:** Ningún usuario con `ghost.{runId}@example.test`.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mismo `status`, `error` y `message` («Invalid credentials») que TC-AUTH-004; solo cambia `timestamp`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"ghost.{{runId}}@example.test\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-007 · GET /me sin Authorization",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-007 — TC-AUTH-007\n\n**Objetivo:** Acceder a una ruta protegida sin token.\n\n**Orden (P5-01):** E2, paso 10\n\n**Precondiciones:** Ninguna.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Authentication is required».\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-008 · GET /me con Bearer malformado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "esto-no-es-un-jwt",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-008 — TC-AUTH-008\n\n**Objetivo:** Rechazar un Bearer que no es un JWT.\n\n**Orden (P5-01):** E2, paso 10\n\n**Precondiciones:** Ninguna. El valor `esto-no-es-un-jwt` es un literal de prueba, no un token.\n\n**Autorización:** Bearer esto-no-es-un-jwt\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; nunca 200 ni 500.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-009 · GET /me con JWT alterado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tamperedToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-009 — TC-AUTH-009\n\n**Objetivo:** Rechazar un JWT con un carácter cambiado.\n\n**Orden (P5-01):** E2, paso 10\n\n**Precondiciones:** `userAToken` vigente. Preparar `tamperedToken` a mano: 1) copiar el valor de `userAToken`; 2) localizar el segundo segmento (entre el primer y el segundo punto); 3) sustituir un carácter cualquiera del segundo segmento, que no sea el último del segmento, por otro carácter distinto del alfabeto base64url (`A`–`Z`, `a`–`z`, `0`–`9`, `-`, `_`); por ejemplo, si el carácter es `x`, poner `y`. No añadir ni quitar caracteres ni puntos: el token debe seguir teniendo tres segmentos separados por dos puntos; 4) pegar el resultado como valor local de `tamperedToken`. No cambiar el último carácter del token: puede no alterar la firma. No guardar ni compartir el valor.\n\n**Autorización:** Bearer {{tamperedToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; la petición nunca llega al controlador (sin datos de A).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-012 · GET /me con token en query string",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me?access_token={{userAToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ],
+              "query": [
+                {
+                  "key": "access_token",
+                  "value": "{{userAToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-012 — TC-AUTH-012\n\n**Objetivo:** Comprobar que un token en la URL no autentica.\n\n**Orden (P5-01):** E2, paso 10\n\n**Precondiciones:** `userAToken` vigente. Sin cabecera Authorization. No capturar la URL resuelta en evidencias: contiene el token.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Authentication is required».\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-014 · POST crear evento con token USER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-014 — TC-AUTH-014\n\n**Objetivo:** Un USER no puede usar una ruta de ADMIN.\n\n**Orden (P5-01):** E2, paso 10\n\n**Precondiciones:** `userAToken` vigente; `denyEventCode` = `E2E-{runId}-DENY` (nunca debe existir). Cuerpo válido, para que la denegación no se confunda con un 400.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied». Integridad: `GET /api/events/{{denyEventCode}}` con `adminToken` debe responder 404 «Event not found» (solo ADMIN distingue un evento inexistente de un borrador). Esa petición se incorporará en P5-05, paso 13, y verificará también TC-SEC-001. Hasta completar esa comprobación posterior, TC-AUTH-014 queda pendiente de verificación: no registrarlo como PASS antes de ella.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"{{denyEventCode}}\",\n  \"name\": \"PulsePass E2E DENY {{runId}}\",\n  \"description\": \"Evento que nunca debe crearse\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-015 · GET ruta pública con Bearer inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "active"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "token-invalido-e2e",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-015 — TC-AUTH-015\n\n**Objetivo:** Un Bearer inválido en una ruta pública no autentica (P4-D6).\n\n**Orden (P5-01):** E2, paso 10\n\n**Precondiciones:** Ninguna. El valor `token-invalido-e2e` es un literal de prueba, no un token.\n\n**Autorización:** Bearer token-invalido-e2e\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; sin la lista de venues.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-013a · GET /me con el token del usuario desactivado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{inactiveUserToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-AUTH-013a — TC-AUTH-013\n\n**Objetivo:** Un token emitido antes de desactivar la cuenta deja de servir.\n\n**Orden (P5-01):** E2, paso 11\n\n**Precondiciones:** E2E-AUTH-02-INACTIVE respondió 200; después, paso SQL `deactivate` aplicado (`tests/e2e/fixtures/README.md`). El `inactiveUserToken` debe haberse emitido hace menos de 15 minutos (TTL): si no se cumple, repetir E2E-AUTH-01-INACTIVE y su `/me` de control E2E-AUTH-02-INACTIVE (200) justo antes del SQL `deactivate`, registrar la hora del login y continuar con ese token. Así el 401 no puede deberse a la caducidad. Se reutiliza el `inactiveUserToken` emitido antes del SQL, sin nuevo login después de la desactivación.\n\n**Autorización:** Bearer {{inactiveUserToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos. Anotar el mensaje observado (no verificado en ejecución).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-013b · POST login del usuario desactivado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-AUTH-013b — TC-AUTH-013\n\n**Objetivo:** Un usuario inactivo no obtiene un JWT nuevo.\n\n**Orden (P5-01):** E2, paso 11\n\n**Precondiciones:** TC-AUTH-013a ejecutado.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje genérico, sin revelar que la cuenta está inactiva; ningún `accessToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{inactiveUserUsername}}\",\n  \"password\": \"{{inactiveUserPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
       "auth": {
         "type": "noauth"
       }
