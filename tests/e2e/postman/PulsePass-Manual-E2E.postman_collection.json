@@ -1027,6 +1027,87 @@
             "description": "**ID:** E2E-AUTH-02-INACTIVE — TC-AUTH-013 (control)\n\n**Objetivo:** Comprobar la identidad y los roles efectivos de INACTIVE_USER.\n\n**Orden (P5-01):** E2, paso 9\n\n**Precondiciones:** `inactiveUserToken` vigente; la cuenta todavía está activa.\n\n**Autorización:** Bearer {{inactiveUserToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthenticatedUserResponse(id, username, email, roles)`: identidad de INACTIVE_USER y `roles = [\"USER\"]`; sin contraseña, hash ni token. Demuestra que el token es válido antes de desactivar la cuenta.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
           },
           "response": []
+        },
+        {
+          "name": "E2E-USR-01-MINOR · POST registrar USER_MINOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-USR-01-MINOR — TC-BIZ-014 (preparación, edad)\n\n**Objetivo:** Registrar USER_MINOR, cuenta auxiliar.\n\n**Orden (P5-01):** E4, paso 34\n\n**Precondiciones:** `userMinorUsername` = `userminor-{runId}`, `userMinorEmail` = `userminor.{runId}@example.test`, `userMinorPassword` como valor local. `birthDate` 2013-06-01: tendrá 17 años el 2030-12-12 (P5-01-c). Nombre y apellido: DATO DE PRUEBA.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `UserResponse(id, username, email, active, firstName, lastName, phone, city, birthDate)`; sin `password` ni hash; `active = true`; `birthDate = 2013-06-01`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userMinorUsername}}\",\n  \"email\": \"{{userMinorEmail}}\",\n  \"firstName\": \"Mateo\",\n  \"lastName\": \"Menor\",\n  \"birthDate\": \"2013-06-01\",\n  \"password\": \"{{userMinorPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-01-MINOR · POST login USER_MINOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-AUTH-01-MINOR — TC-BIZ-014 (preparación, edad)\n\n**Objetivo:** Iniciar sesión como USER_MINOR.\n\n**Orden (P5-01):** E4, paso 34\n\n**Precondiciones:** E2E-USR-01-MINOR ejecutado.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `AuthResponse(accessToken, tokenType, expiresIn)`: `accessToken` no vacío, `tokenType = Bearer`, `expiresIn = {{expectedTokenTtlSeconds}}`.\n\n**Copiar:** solo el valor de `accessToken` al valor local de `userMinorToken`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userMinorUsername}}\",\n  \"password\": \"{{userMinorPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         }
       ],
       "auth": {
@@ -1501,6 +1582,665 @@
             "description": "**ID:** E2E-EVT-06 — TC-BIZ-005\n\n**Objetivo:** Comprobar la propagación de la asociación.\n\n**Orden (P5-01):** E3, paso 18\n\n**Precondiciones:** MAIN publicado y asociado.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** lista de `EventSummaryResponse(id, eventCode, name, category, status, eventDate, venueCode, venueName)`; incluye MAIN; nunca eventos no publicados (P4-D4).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
           },
           "response": []
+        },
+        {
+          "name": "TC-SEC-001-ANON · POST crear evento sin token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-SEC-001-ANON — TC-SEC-001\n\n**Objetivo:** Un anónimo no puede crear eventos.\n\n**Orden (P5-01):** E3, paso 13\n\n**Precondiciones:** `denyEventCode` = `E2E-{runId}-DENY` (nunca debe existir). Cuerpo válido, para que la denegación no se confunda con un 400.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 401\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Authentication is required».\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"{{denyEventCode}}\",\n  \"name\": \"PulsePass E2E DENY {{runId}}\",\n  \"description\": \"Evento que nunca debe crearse\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-001-USER · POST crear evento con token USER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-001-USER — TC-SEC-001\n\n**Objetivo:** Un USER no puede crear eventos.\n\n**Orden (P5-01):** E3, paso 13\n\n**Precondiciones:** `userAToken` vigente; mismo cuerpo DENY. Si un token caducó (15 min), repetir su login con la petición existente de P5-04 antes de continuar.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied». Integridad: TC-SEC-001-CHK.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"{{denyEventCode}}\",\n  \"name\": \"PulsePass E2E DENY {{runId}}\",\n  \"description\": \"Evento que nunca debe crearse\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-001-CHK · GET evento DENY (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{denyEventCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{denyEventCode}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-001-CHK — TC-SEC-001 y TC-AUTH-014\n\n**Objetivo:** Confirmar que ningún intento denegado creó DENY.\n\n**Orden (P5-01):** E3, paso 13 (después de TC-SEC-001-ANON y TC-SEC-001-USER)\n\n**Precondiciones:** TC-AUTH-014, TC-SEC-001-ANON y TC-SEC-001-USER ejecutados; `adminToken` vigente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Event not found: …». Solo ADMIN distingue un evento inexistente de un borrador. Con este 404 se cierran TC-SEC-001 y TC-AUTH-014 (pendiente desde P5-04); un 200 sería un defecto.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-02-PRE · GET MAIN antes de publicar (anónimo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{publishedEventCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{publishedEventCode}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-EVT-02-PRE — TC-SEC-004 (variante con MAIN)\n\n**Objetivo:** Un borrador no es visible para el público.\n\n**Orden (P5-01):** E3, paso 14 (después de E2E-EVT-01)\n\n**Precondiciones:** MAIN creado y todavía en DRAFT.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Event not found: …»; ningún dato de MAIN.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-03-PRE · GET publicados antes de publicar MAIN",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/published",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "published"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-EVT-03-PRE — TC-BIZ-004 (estado previo)\n\n**Objetivo:** MAIN no aparece en el listado público mientras es DRAFT.\n\n**Orden (P5-01):** E3, paso 14\n\n**Precondiciones:** MAIN creado y todavía en DRAFT.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** lista de `EventSummaryResponse(id, eventCode, name, category, status, eventDate, venueCode, venueName)`; no incluye MAIN.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-003 · POST asociar artista a MAIN (USER_A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventToPublishCode}}/artists/{{artistId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{eventToPublishCode}}",
+                "artists",
+                "{{artistId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-003 — TC-SEC-003\n\n**Objetivo:** Un USER no puede asociar artistas.\n\n**Orden (P5-01):** E3, paso 15\n\n**Precondiciones:** MAIN en DRAFT, sin artistas; `userAToken` vigente.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied». Integridad: reenviar E2E-EVT-02-ADMIN (`artists = []`).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-02-ADMIN · GET MAIN (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventToPublishCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{eventToPublishCode}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-EVT-02-ADMIN — TC-SEC-002, TC-SEC-003, TC-BIZ-005 (integridad)\n\n**Objetivo:** Leer MAIN como ADMIN para comprobar su estado tras cada paso.\n\n**Orden (P5-01):** E3, pasos 15, 16 y 17 (se reenvía; no duplicar la petición)\n\n**Precondiciones:** `adminToken` vigente. Si un token caducó (15 min), repetir su login con la petición existente de P5-04 antes de continuar.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `EventResponse(id, eventCode, name, description, category, status, eventDate, minimumAge, venueCode, venueName, artists)`. Estado esperado según el paso: tras el paso 15 (TC-SEC-003), `status = DRAFT` y `artists = []`; tras el paso 16 (E2E-EVT-05), `status = DRAFT` y `artists` con `{{artistId}}`; tras el paso 17 (TC-SEC-002-USER y -STAFF), sigue `status = DRAFT` con el artista.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-002-USER · PATCH publicar MAIN (USER_A)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventToPublishCode}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{eventToPublishCode}}",
+                "publish"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-002-USER — TC-SEC-002\n\n**Objetivo:** Un USER no puede publicar eventos.\n\n**Orden (P5-01):** E3, paso 17\n\n**Precondiciones:** MAIN en DRAFT con el artista asociado; `userAToken` vigente.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied». Integridad: reenviar E2E-EVT-02-ADMIN (sigue DRAFT).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-002-STAFF · PATCH publicar MAIN (STAFF)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventToPublishCode}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{eventToPublishCode}}",
+                "publish"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-002-STAFF — TC-SEC-002\n\n**Objetivo:** STAFF tampoco puede publicar (solo ADMIN, P4-D8).\n\n**Orden (P5-01):** E3, paso 17\n\n**Precondiciones:** MAIN en DRAFT; `staffToken` vigente; STAFF conserva su rol (se retira en E6).\n\n**Autorización:** Bearer {{staffToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied». Integridad: reenviar E2E-EVT-02-ADMIN (sigue DRAFT).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-04-REPEAT · PATCH volver a publicar MAIN (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventToPublishCode}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{eventToPublishCode}}",
+                "publish"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-EVT-04-REPEAT — TC-BIZ-004 (transición no admitida)\n\n**Objetivo:** Solo se publica desde DRAFT (BR-EVENT-007).\n\n**Orden (P5-01):** E3, paso 19 (después de E2E-EVT-04)\n\n**Precondiciones:** MAIN ya PUBLISHED; `adminToken` vigente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Only DRAFT events can be published: …». MAIN sigue PUBLISHED (E2E-EVT-02).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-01-DRAFT · POST crear evento DRAFT (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-EVT-01-DRAFT — TC-SEC-004/005/015 (preparación)\n\n**Objetivo:** Crear el evento que se queda en DRAFT.\n\n**Orden (P5-01):** E3, paso 20\n\n**Precondiciones:** `draftEventCode` = `E2E-{runId}-DRAFT`; `adminToken` vigente. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `EventResponse(id, eventCode, name, description, category, status, eventDate, minimumAge, venueCode, venueName, artists)`; `status = DRAFT`, `category = CULTURE`, `minimumAge = 0`, `venueCode` = V0, `artists = []`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"{{draftEventCode}}\",\n  \"name\": \"PulsePass E2E DRAFT {{runId}}\",\n  \"description\": \"Evento de prueba manual\",\n  \"category\": \"CULTURE\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-05-DRAFT · POST asociar artista a DRAFT (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{draftEventCode}}/artists/{{artistId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{draftEventCode}}",
+                "artists",
+                "{{artistId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-EVT-05-DRAFT — TC-SEC-005 (preparación)\n\n**Objetivo:** Asociar el mismo artista a DRAFT.\n\n**Orden (P5-01):** E3, paso 20\n\n**Precondiciones:** DRAFT creado; `adminToken` vigente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `EventResponse(id, eventCode, name, description, category, status, eventDate, minimumAge, venueCode, venueName, artists)`; `status = DRAFT`; `artists` contiene `{{artistId}}`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-05-DRAFT-REPEAT · POST repetir asociación (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{draftEventCode}}/artists/{{artistId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{draftEventCode}}",
+                "artists",
+                "{{artistId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-EVT-05-DRAFT-REPEAT — TC-BIZ-005 (asociación repetida)\n\n**Objetivo:** Una asociación repetida se rechaza (BR-EVENT-010).\n\n**Orden (P5-01):** E3, paso 20\n\n**Precondiciones:** E2E-EVT-05-DRAFT ejecutado.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Artist already associated with event …». El artista no se duplica (TC-SEC-015).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-015 · GET DRAFT (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{draftEventCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{draftEventCode}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-015 — TC-SEC-015\n\n**Objetivo:** ADMIN puede consultar un borrador (P4-D2/D3).\n\n**Orden (P5-01):** E3, paso 20\n\n**Precondiciones:** DRAFT con el artista asociado.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `EventResponse(id, eventCode, name, description, category, status, eventDate, minimumAge, venueCode, venueName, artists)`; `status = DRAFT`; `artists` con el artista una sola vez.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-004 · GET DRAFT (anónimo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{draftEventCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{draftEventCode}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-SEC-004 — TC-SEC-004\n\n**Objetivo:** Un anónimo no recibe datos de un borrador.\n\n**Orden (P5-01):** E3, paso 20\n\n**Precondiciones:** DRAFT existe (TC-SEC-015 respondió 200).\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Event not found: …», igual que para un código inexistente.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-005 · GET eventos por artista (anónimo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/by-artist?stageName={{artistStageName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "by-artist"
+              ],
+              "query": [
+                {
+                  "key": "stageName",
+                  "value": "{{artistStageName}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** TC-SEC-005 — TC-SEC-005\n\n**Objetivo:** El listado por artista nunca incluye borradores (P4-D4).\n\n**Orden (P5-01):** E3, paso 20\n\n**Precondiciones:** MAIN publicado y DRAFT, ambos asociados al mismo artista por ADMIN.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** lista de `EventSummaryResponse(id, eventCode, name, category, status, eventDate, venueCode, venueName)`; incluye MAIN y no incluye DRAFT.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-01-SOLD · POST crear evento SOLD (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-EVT-01-SOLD — TC-BIZ-014 (preparación, aforo)\n\n**Objetivo:** Crear el evento del local de capacidad 1.\n\n**Orden (P5-01):** E3, paso 21\n\n**Precondiciones:** `soldOutEventCode` = `E2E-{runId}-SOLD`; `capacityOneVenueCode` = V1; `adminToken` vigente. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `EventResponse(id, eventCode, name, description, category, status, eventDate, minimumAge, venueCode, venueName, artists)`; `status = DRAFT`, `minimumAge = 0`, `venueCode` = V1.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"{{soldOutEventCode}}\",\n  \"name\": \"PulsePass E2E SOLD {{runId}}\",\n  \"description\": \"Evento de prueba manual\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-12T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{capacityOneVenueCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-04-SOLD · PATCH publicar SOLD (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{soldOutEventCode}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{soldOutEventCode}}",
+                "publish"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-EVT-04-SOLD — TC-BIZ-014 (preparación, aforo)\n\n**Objetivo:** Publicar SOLD.\n\n**Orden (P5-01):** E3, paso 21\n\n**Precondiciones:** SOLD en DRAFT.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `EventResponse(id, eventCode, name, description, category, status, eventDate, minimumAge, venueCode, venueName, artists)`; `status = PUBLISHED`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
         }
       ],
       "auth": {
@@ -1740,6 +2480,714 @@
               ]
             },
             "description": "**ID:** E2E-TKT-06 — TC-SEC-014\n\n**Objetivo:** STAFF marca T2 como usado.\n\n**Orden (P5-01):** E4, paso 30\n\n**Precondiciones:** TC-BIZ-009 y TC-SEC-012 ya ejecutados; T2 en PAID. La variante TC-BIZ-012 usa `ticket4Code` (P5-05).\n\n**Autorización:** Bearer {{staffToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `TicketResponse(id, ticketCode, type, price, status, purchaseDate, userEmail, eventCode, eventName)`; `status = USED`. La lectura de T2 con un actor autorizado (antes y después del uso) es una variante posterior de P5-05, no una petición base de P5-03: E2E-TKT-02 está ligada a T1.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-008 · POST comprar con el email de USER_B (USER_A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-008 — TC-SEC-008\n\n**Objetivo:** USER_A no puede comprar a nombre de USER_B.\n\n**Orden (P5-01):** E4, paso 22 (después de la 1.ª compra de E2E-TKT-01, T1, y antes de la 2.ª)\n\n**Precondiciones:** MAIN publicado; `userAToken` vigente. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied». Integridad: TC-SEC-008-CHK (`[]`).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userBEmail}}\",\n  \"eventCode\": \"{{publishedEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-008-CHK · GET tickets de USER_B (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/by-user?email={{userBEmail}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "by-user"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{userBEmail}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-008-CHK — TC-SEC-008 y TC-BIZ-014 (integridad)\n\n**Objetivo:** Confirmar que USER_B no tiene tickets.\n\n**Orden (P5-01):** E4, pasos 22 y 33 (se reenvía; no duplicar la petición)\n\n**Precondiciones:** `adminToken` vigente. Si un token caducó (15 min), repetir su login con la petición existente de P5-04 antes de continuar.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** Lista de `TicketResponse(id, ticketCode, type, price, status, purchaseDate, userEmail, eventCode, eventName)`. Estado esperado según el paso: tras el paso 22 (TC-SEC-008), `[]`; tras el paso 33 (TC-BIZ-014-SOLDOUT), sigue `[]`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-009 · GET ticket T1 de USER_A (USER_B)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketCancelableCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketCancelableCode}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-009 — TC-SEC-009\n\n**Objetivo:** USER_B no puede leer un ticket de USER_A.\n\n**Orden (P5-01):** E4, paso 25\n\n**Precondiciones:** T1 en PAID; `userBToken` vigente.\n\n**Autorización:** Bearer {{userBToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403 (`expectedForeignResourceStatus`)\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied»; ningún dato del ticket.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-010 · GET tickets de USER_A (USER_B)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/by-user?email={{userAEmail}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "by-user"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{userAEmail}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-010 — TC-SEC-010\n\n**Objetivo:** USER_B no puede listar los tickets de USER_A.\n\n**Orden (P5-01):** E4, paso 25\n\n**Precondiciones:** `userBToken` vigente.\n\n**Autorización:** Bearer {{userBToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403 (`expectedForeignResourceStatus`)\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied»; ninguna información de A.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-011 · PATCH cancelar T1 de USER_A (USER_B)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketCancelableCode}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketCancelableCode}}",
+                "cancel"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-011 — TC-SEC-011\n\n**Objetivo:** USER_B no puede cancelar un ticket de USER_A.\n\n**Orden (P5-01):** E4, paso 25\n\n**Precondiciones:** T1 en PAID; `userBToken` vigente.\n\n**Autorización:** Bearer {{userBToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403 (`expectedForeignResourceStatus`)\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied». Integridad: reenviar E2E-TKT-02 (T1 sigue `PAID`).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-013 · GET tickets pagados de MAIN (USER_A)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{publishedEventCode}}/tickets/paid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{publishedEventCode}}",
+                "tickets",
+                "paid"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-013 — TC-SEC-013\n\n**Objetivo:** Un USER no accede a la consulta operativa de STAFF/ADMIN.\n\n**Orden (P5-01):** E4, paso 26\n\n**Precondiciones:** `userAToken` vigente.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied».\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-011 · PATCH cancelar T1 otra vez (USER_A)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketCancelableCode}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketCancelableCode}}",
+                "cancel"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-011 — TC-BIZ-011\n\n**Objetivo:** Un ticket ya cancelado no se cancela de nuevo (BR-TICKET-010/011).\n\n**Orden (P5-01):** E4, paso 27 (después de E2E-TKT-05 y de reenviar E2E-TKT-02)\n\n**Precondiciones:** T1 en CANCELLED.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Only PAID tickets can be cancelled: …». T1 sigue CANCELLED; sin doble transición.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-012 · PATCH usar T2 de USER_A (USER_B)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketUsableCode}}/use",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketUsableCode}}",
+                "use"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-SEC-012 — TC-SEC-012\n\n**Objetivo:** USER_B no puede marcar como usado un ticket de USER_A.\n\n**Orden (P5-01):** E4, paso 29 (después de E2E-TKT-04, paso 28, y antes de E2E-TKT-06)\n\n**Precondiciones:** TC-BIZ-009 (E2E-TKT-04) ya ejecutado; T2 en PAID; `userBToken` vigente.\n\n**Autorización:** Bearer {{userBToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 403\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Access denied». Integridad: E2E-TKT-02-T2 (T2 sigue `PAID`).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-02-T2 · GET ticket T2 (propietario)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticketUsableCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticketUsableCode}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-TKT-02-T2 — TC-SEC-012 y TC-SEC-014 (integridad)\n\n**Objetivo:** USER_A lee T2 antes y después de su uso.\n\n**Orden (P5-01):** E4, pasos 29 y 30 (se reenvía; no duplicar la petición)\n\n**Precondiciones:** `userAToken` vigente. Si un token caducó (15 min), repetir su login con la petición existente de P5-04 antes de continuar.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `TicketResponse(id, ticketCode, type, price, status, purchaseDate, userEmail, eventCode, eventName)`; propietario A. Estado esperado según el paso: tras el paso 29 (TC-SEC-012), `status = PAID`; tras el paso 30 (E2E-TKT-06), `status = USED`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-012 · PATCH usar T4 (STAFF)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticket4Code}}/use",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticket4Code}}",
+                "use"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-012 — TC-BIZ-012\n\n**Objetivo:** STAFF marca como usado otro ticket elegible.\n\n**Orden (P5-01):** E4, paso 31 (después de E2E-TKT-04, paso 28)\n\n**Precondiciones:** T4 en PAID; STAFF conserva su rol (se retira en E6); `staffToken` vigente.\n\n**Autorización:** Bearer {{staffToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `TicketResponse(id, ticketCode, type, price, status, purchaseDate, userEmail, eventCode, eventName)`; `ticketCode` = T4; `status = USED`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-013 · PATCH usar T4 otra vez (STAFF)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/{{ticket4Code}}/use",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "{{ticket4Code}}",
+                "use"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-013 — TC-BIZ-013\n\n**Objetivo:** Un ticket usado no se usa de nuevo (BR-TICKET-013/014).\n\n**Orden (P5-01):** E4, paso 31\n\n**Precondiciones:** TC-BIZ-012 ejecutado; T4 en USED.\n\n**Autorización:** Bearer {{staffToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Only PAID tickets can be used: …». T4 sigue USED.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-014-DRAFT · POST comprar en DRAFT (USER_A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-014-DRAFT — TC-BIZ-014 (evento no publicado)\n\n**Objetivo:** No se compra en un evento no publicado (BR-TICKET-004).\n\n**Orden (P5-01):** E4, paso 32\n\n**Precondiciones:** DRAFT sigue en DRAFT; `userAToken` vigente. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Tickets can only be purchased for PUBLISHED events: …». Limitación conocida (P4-08-F): el 409 revela que el borrador existe; no es un defecto. Integridad: reenviar E2E-TKT-03: los mismos 4 tickets, sin ninguno nuevo; estados esperados en este paso: T1 CANCELLED, T2 USED, T3 PAID, T4 USED.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userAEmail}}\",\n  \"eventCode\": \"{{draftEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-01-SOLD · POST comprar en SOLD → T5 (USER_A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-TKT-01-SOLD — TC-BIZ-014 (aforo agotado)\n\n**Objetivo:** Agotar el local de capacidad 1 con una compra.\n\n**Orden (P5-01):** E4, paso 33\n\n**Precondiciones:** SOLD publicado (V1, capacidad 1); `userAToken` vigente. Enviar una sola vez. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{userAToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 201\n\n**Revisión manual:** `TicketResponse(id, ticketCode, type, price, status, purchaseDate, userEmail, eventCode, eventName)`; `status = PAID`, `eventCode` = SOLD. Esta compra completa la capacidad y SOLD pasa a SOLD_OUT en la misma transacción (BR-TICKET-008): comprobar con E2E-EVT-02-SOLD-ADMIN.\n\n**Copiar:** `ticketCode` al valor de `ticket5Code` (T5, ticket del escenario SOLD_OUT).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userAEmail}}\",\n  \"eventCode\": \"{{soldOutEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-014-SOLDOUT · POST comprar en SOLD agotado (USER_B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-014-SOLDOUT — TC-BIZ-014 (aforo agotado)\n\n**Objetivo:** No se compra en un evento agotado.\n\n**Orden (P5-01):** E4, paso 33\n\n**Precondiciones:** E2E-TKT-01-SOLD respondió 201; `userBToken` vigente. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{userBToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Tickets can only be purchased for PUBLISHED events: …» (el evento ya es SOLD_OUT y BR-TICKET-004 se evalúa antes que la capacidad, BR-TICKET-007). Integridad: reenviar TC-SEC-008-CHK (`[]`).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userBEmail}}\",\n  \"eventCode\": \"{{soldOutEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-02-SOLD-ANON · GET SOLD agotado (anónimo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{soldOutEventCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{soldOutEventCode}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "**ID:** E2E-EVT-02-SOLD-ANON — TC-BIZ-014 (aforo agotado)\n\n**Objetivo:** Un evento SOLD_OUT deja de ser público (P4-D2/D3).\n\n**Orden (P5-01):** E4, paso 33\n\n**Precondiciones:** SOLD en SOLD_OUT.\n\n**Autorización:** Sin Authorization (No Auth)\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 404\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «Event not found: …».\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-02-SOLD-ADMIN · GET SOLD agotado (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{soldOutEventCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{soldOutEventCode}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-EVT-02-SOLD-ADMIN — TC-BIZ-014 (aforo agotado)\n\n**Objetivo:** Verificar el estado persistido (FR-E2E-008).\n\n**Orden (P5-01):** E4, paso 33\n\n**Precondiciones:** SOLD en SOLD_OUT; `adminToken` vigente.\n\n**Autorización:** Bearer {{adminToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** `EventResponse(id, eventCode, name, description, category, status, eventDate, minimumAge, venueCode, venueName, artists)`; `status = SOLD_OUT`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-014-AGE · POST comprar en MAIN sin edad mínima (USER_MINOR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userMinorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** TC-BIZ-014-AGE — TC-BIZ-014 (edad insuficiente)\n\n**Objetivo:** La edad se evalúa en la fecha del evento (BR-TICKET-006).\n\n**Orden (P5-01):** E4, paso 34\n\n**Precondiciones:** USER_MINOR registrado (17 años el 2030-12-12); MAIN publicado con `minimumAge = 18`; `userMinorToken` vigente. Compra con su propio email. Valores del cuerpo: DATO DE PRUEBA.\n\n**Autorización:** Bearer {{userMinorToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 409\n\n**Revisión manual:** `ErrorResponse(timestamp, status, error, message, details)` con `status` igual al HTTP; sin datos internos; mensaje «User does not meet minimum age for event …». Integridad: E2E-TKT-03-MINOR (`[]`).\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userMinorEmail}}\",\n  \"eventCode\": \"{{publishedEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-03-MINOR · GET tickets propios (USER_MINOR)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/by-user?email={{userMinorEmail}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "by-user"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{userMinorEmail}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userMinorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "**ID:** E2E-TKT-03-MINOR — TC-BIZ-014 (integridad)\n\n**Objetivo:** Confirmar que no se guardó ningún ticket.\n\n**Orden (P5-01):** E4, paso 34\n\n**Precondiciones:** TC-BIZ-014-AGE ejecutado.\n\n**Autorización:** Bearer {{userMinorToken}}\n\n**Ejecución:** abrir la petición, comprobar el ambiente `PulsePass-local` y el token, y pulsar Send.\n\n**HTTP esperado:** 200\n\n**Revisión manual:** Lista de `TicketResponse(id, ticketCode, type, price, status, purchaseDate, userEmail, eventCode, eventName)`; `[]`.\n\n**Evidencia:** anotar HTTP real, resultado (PASS/FAIL/BLOCKED) y observación en `registro-ejecucion-manual.md`, sin tokens ni contraseñas.\n\nLa pestaña de scripts debe permanecer vacía."
           },
           "response": []
         }
