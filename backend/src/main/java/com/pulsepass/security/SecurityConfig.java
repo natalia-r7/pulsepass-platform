@@ -27,7 +27,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Los 401 y 403 los escriben {@link RestAuthenticationEntryPoint} y {@link RestAccessDeniedHandler}
  * con el {@code ErrorResponse} común. La visibilidad de los borradores la decide el servicio
  * (P4-04b). Las rutas de autenticación son {@code POST /api/auth/login}, pública, y
- * {@code GET /api/auth/me}, autenticada (P4-07-H). La propiedad de los recursos se añade en P4-08.
+ * {@code GET /api/auth/me}, autenticada (P4-07-H). La propiedad de los recursos no se decide aquí:
+ * la comprueban las reglas {@code @PreAuthorize} de los servicios, activadas en
+ * {@link MethodSecurityConfig} (P4-08-A, P4-08-D).
  * <p>
  * {@link JwtAuthenticationFilter} (P4-05) se crea aquí y no es un bean, para que solo exista dentro
  * de esta cadena y se ejecute una sola vez (P4-05-f). Va antes de

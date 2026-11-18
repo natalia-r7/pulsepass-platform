@@ -53,8 +53,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * ningún servicio (T-SEC-003). Los servicios son {@code @MockitoBean}: aquí solo importa la
  * regla, no la respuesta de negocio, que ya prueban las clases de cada controlador.
  * <p>
- * La propiedad de los recursos (P4-08) y la visibilidad de los borradores (P4-04b) todavía no se
- * aplican: esas rutas aparecen aquí como «cualquier usuario autenticado».
+ * Esta matriz solo prueba las reglas de URL. La propiedad de los recursos (P4-08) se comprueba con
+ * {@code @PreAuthorize} en los servicios, que aquí son simulados y {@code @WebMvcTest} no carga
+ * {@code MethodSecurityConfig}; la prueba {@code OwnershipSecurityIT}. La visibilidad de los
+ * borradores (P4-04b) la decide el servicio. Por eso esas rutas aparecen aquí como «cualquier
+ * usuario autenticado».
  */
 @WebMvcTest(controllers = {VenueController.class, ArtistController.class, EventController.class,
         UserController.class, TicketController.class, AuthController.class})

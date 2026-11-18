@@ -8,6 +8,8 @@ import com.pulsepass.mapper.ArtistMapperImpl;
 import com.pulsepass.mapper.EventMapperImpl;
 import com.pulsepass.repository.ArtistRepository;
 import com.pulsepass.repository.EventRepository;
+import com.pulsepass.repository.TicketRepository;
+import com.pulsepass.repository.UserRepository;
 import com.pulsepass.repository.VenueRepository;
 import com.pulsepass.security.SecurityPrincipal;
 import com.pulsepass.security.WebSecurityTestConfiguration;
@@ -71,6 +73,12 @@ class EventDraftVisibilityTest {
 
     @MockitoBean
     private ArtistRepository artistRepository;
+
+    @MockitoBean
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private TicketRepository ticketRepository;
 
     @ParameterizedTest(name = "{0} como {1}")
     @MethodSource("statusesByActor")
