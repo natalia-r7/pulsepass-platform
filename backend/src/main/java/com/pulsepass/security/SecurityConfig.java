@@ -4,6 +4,9 @@ import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -23,8 +26,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <p>
  * Los 401 y 403 los escriben {@link RestAuthenticationEntryPoint} y {@link RestAccessDeniedHandler}
  * con el {@code ErrorResponse} común. La visibilidad de los borradores la decide el servicio
- * (P4-04b). La propiedad de los recursos (P4-08) y las rutas de autenticación (P4-07) se añaden en
- * sus tareas.
+ * (P4-04b). Las rutas de autenticación son {@code POST /api/auth/login}, pública, y
+ * {@code GET /api/auth/me}, autenticada (P4-07-H). La propiedad de los recursos se añade en P4-08.
  * <p>
  * {@link JwtAuthenticationFilter} (P4-05) se crea aquí y no es un bean, para que solo exista dentro
  * de esta cadena y se ejecute una sola vez (P4-05-f). Va antes de
@@ -32,7 +35,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <p>
  * El {@link PasswordEncoder} (P4-06-C) es BCrypt de fuerza 10 (P4-D10): genera hashes
  * {@code $2a$10$…} de 60 caracteres, que caben en {@code password_hash VARCHAR(100)}. Lo usa el
- * registro (P4-06) y lo usará el {@code AuthenticationManager} del login (P4-07).
+ * registro (P4-06) y el {@link AuthenticationManager} del login.
+ * <p>
+ * El {@link AuthenticationManager} explícito (P4-05-a, P4-07-D) es un {@link ProviderManager} con un
+ * {@link DaoAuthenticationProvider} sobre {@link CustomUserDetailsService} y ese
+ * {@code PasswordEncoder}. Se dejan sus valores por defecto: un usuario inexistente se informa como
+ * credenciales incorrectas, se compara un hash ficticio para no revelar por tiempo si el usuario
+ * existe y se borra el hash tras autenticar.
  */
 @Configuration
 @EnableWebSecurity
@@ -44,6 +53,14 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(BCRYPT_STRENGTH);
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(CustomUserDetailsService userDetailsService,
+                                                       PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return new ProviderManager(provider);
     }
 
     @Bean
@@ -67,6 +84,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Despacho interno de errores (/error): sin esto, un error fuera de MVC acabaría en 401.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        // Autenticación (FR-SEC-AUTH-002, FR-SEC-AUTH-010; P4-07-H).
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         // Públicas (FR-SEC-VEN-01/02, FR-SEC-ART-01..03, FR-SEC-USR-01).
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/venues/**", "/api/artists/**").permitAll()

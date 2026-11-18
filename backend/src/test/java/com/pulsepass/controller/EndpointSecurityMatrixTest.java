@@ -45,7 +45,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Matriz de autorización por URL de las 20 operaciones (PRD Seguridad §11, §14.3, §17.4; P4-04-m).
+ * Matriz de autorización por URL de las 20 operaciones heredadas y de las 2 de autenticación,
+ * 22 en total (PRD Seguridad §10.1, §11, §14.3, §17.4; P4-04-m, P4-07-L).
  * <p>
  * Cada operación se ejecuta como anónimo, USER, STAFF y ADMIN con la cadena de seguridad real.
  * Comprueba el código que da la regla de URL y, cuando la petición se deniega, que no se llamó a
@@ -56,7 +57,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * aplican: esas rutas aparecen aquí como «cualquier usuario autenticado».
  */
 @WebMvcTest(controllers = {VenueController.class, ArtistController.class, EventController.class,
-        UserController.class, TicketController.class})
+        UserController.class, TicketController.class, AuthController.class})
 @Import({FixedClockTestConfiguration.class, WebSecurityTestConfiguration.class})
 class EndpointSecurityMatrixTest {
 
@@ -69,6 +70,8 @@ class EndpointSecurityMatrixTest {
              "lastName": "Prueba", "birthDate": "1995-01-15", "password": "ClaveDeMatriz2030!"}""";
     private static final String PURCHASE_TICKET_JSON = """
             {"userEmail": "matriz@pulsepass.test", "eventCode": "MTX-2030", "type": "GENERAL"}""";
+    private static final String LOGIN_JSON = """
+            {"identifier": "matriz.usuario", "password": "ClaveDeMatriz2030!"}""";
 
     private static final Set<Actor> PUBLIC = EnumSet.allOf(Actor.class);
     private static final Set<Actor> AUTHENTICATED = EnumSet.of(Actor.USER, Actor.STAFF, Actor.ADMIN);
@@ -76,7 +79,10 @@ class EndpointSecurityMatrixTest {
     private static final Set<Actor> ADMIN_ONLY = EnumSet.of(Actor.ADMIN);
     private static final Set<Actor> USER_ONLY = EnumSet.of(Actor.USER);
 
-    /** Las 20 operaciones con su regla de URL (§11) y su código de éxito (PRD Controladores). */
+    /**
+     * Las 22 operaciones con su regla de URL (§10.1, §11) y su código de éxito (PRD Controladores y
+     * Seguridad §10.1).
+     */
     private static final List<Endpoint> ENDPOINTS = List.of(
             new Endpoint("FR-SEC-VEN-01", HttpMethod.GET, "/api/venues/VEN-SMR-01", null, 200, PUBLIC),
             new Endpoint("FR-SEC-VEN-02", HttpMethod.GET, "/api/venues/active", null, 200, PUBLIC),
@@ -97,7 +103,9 @@ class EndpointSecurityMatrixTest {
             new Endpoint("FR-SEC-TKT-03", HttpMethod.GET, "/api/tickets/by-user?email=andrea@email.com", null, 200, AUTHENTICATED),
             new Endpoint("FR-SEC-TKT-04", HttpMethod.GET, "/api/events/CMF-2026/tickets/paid", null, 200, STAFF_OR_ADMIN),
             new Endpoint("FR-SEC-TKT-05", HttpMethod.PATCH, "/api/tickets/TKT-8F2A1C/cancel", null, 200, AUTHENTICATED),
-            new Endpoint("FR-SEC-TKT-06", HttpMethod.PATCH, "/api/tickets/TKT-8F2A1C/use", null, 200, STAFF_OR_ADMIN));
+            new Endpoint("FR-SEC-TKT-06", HttpMethod.PATCH, "/api/tickets/TKT-8F2A1C/use", null, 200, STAFF_OR_ADMIN),
+            new Endpoint("FR-SEC-AUTH-002", HttpMethod.POST, "/api/auth/login", LOGIN_JSON, 200, PUBLIC),
+            new Endpoint("FR-SEC-AUTH-010", HttpMethod.GET, "/api/auth/me", null, 200, AUTHENTICATED));
 
     @Autowired
     private MockMvc mockMvc;

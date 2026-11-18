@@ -1,15 +1,18 @@
 package com.pulsepass.service;
 
+import com.pulsepass.dto.request.LoginRequest;
 import com.pulsepass.dto.request.RegisterUserRequest;
+import com.pulsepass.dto.response.AuthResponse;
+import com.pulsepass.dto.response.AuthenticatedUserResponse;
 import com.pulsepass.dto.response.UserResponse;
+import com.pulsepass.security.SecurityPrincipal;
 
 /**
- * Contrato de autenticación y alta de credenciales (PRD Seguridad §7.1, §9.3, §14.5;
- * FR-SEC-AUTH-001).
+ * Contrato de autenticación y alta de credenciales (PRD Seguridad §7.1, §9.3, §10, §14.5;
+ * FR-SEC-AUTH-001, FR-SEC-AUTH-002, FR-SEC-AUTH-010).
  *
  * <p>Orquesta las operaciones que combinan la identidad de {@link UserService} con las
- * credenciales y los roles; no reemplaza a {@code UserService} (§7.1). El login se añadirá en
- * P4-07.
+ * credenciales, los roles y el token; no reemplaza a {@code UserService} (§7.1).
  */
 public interface AuthService {
 
@@ -26,4 +29,21 @@ public interface AuthService {
      *         (BR-USER-005)
      */
     UserResponse register(RegisterUserRequest request);
+
+    /**
+     * Login por username o email y contraseña (FR-SEC-AUTH-002..004, UC-SEC-02; P4-D13, P4-07-E). Solo
+     * después de autenticar emite un JWT cuyo {@code sub} es el id del usuario.
+     *
+     * @return el token Bearer y su duración en segundos
+     * @throws org.springframework.security.core.AuthenticationException si las credenciales no son
+     *         válidas, el usuario no existe, está inactivo o no tiene credencial; el handler responde
+     *         siempre el mismo 401 genérico (P4-D9)
+     */
+    AuthResponse login(LoginRequest request);
+
+    /**
+     * Datos mínimos del usuario autenticado (FR-SEC-AUTH-010; P4-D15, P4-07-C, P4-07-F): id,
+     * username, email y roles actuales, sin secretos.
+     */
+    AuthenticatedUserResponse currentUser(SecurityPrincipal principal);
 }
