@@ -103,6 +103,12 @@ public final class ControllerFixtures {
     /** DATO DE PRUEBA: fecha de nacimiento de Andrea (la misma que en ServiceFixtures). */
     private static final LocalDate ANDREA_BIRTH_DATE = LocalDate.of(2001, 6, 15);
 
+    /**
+     * Contraseña de Andrea: la del ejemplo del PRD Seguridad §10.2 (P4-06-O). Ficticia, solo
+     * para pruebas (§17.3).
+     */
+    public static final String ANDREA_PASSWORD = "UnaFraseSeguraLarga2026!";
+
     /** Registro de Andrea, sin phone ni city (opcionales). */
     public static RegisterUserRequest andreaRegisterRequest() {
         return new RegisterUserRequest(
@@ -112,7 +118,8 @@ public final class ControllerFixtures {
                 "Rojas",                     // DATO DE PRUEBA
                 null,                        // phone (opcional)
                 null,                        // city (opcional)
-                ANDREA_BIRTH_DATE);          // DATO DE PRUEBA
+                ANDREA_BIRTH_DATE,           // DATO DE PRUEBA
+                ANDREA_PASSWORD);            // PRD Seguridad §10.2
     }
 
     /** Usuario Andrea tal como lo devuelve el servicio tras registrarla. */

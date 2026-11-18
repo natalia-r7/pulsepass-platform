@@ -8,6 +8,7 @@ import com.pulsepass.exception.DuplicateResourceException;
 import com.pulsepass.exception.ResourceNotFoundException;
 import com.pulsepass.security.WebSecurityTestConfiguration;
 import com.pulsepass.security.WithSecurityPrincipal;
+import com.pulsepass.service.AuthService;
 import com.pulsepass.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.time.LocalDate;
 
 import static com.pulsepass.controller.ControllerFixtures.ANDREA_EMAIL;
+import static com.pulsepass.controller.ControllerFixtures.ANDREA_PASSWORD;
 import static com.pulsepass.controller.ControllerFixtures.ANDREA_USERNAME;
 import static com.pulsepass.controller.ControllerFixtures.andreaRegisterRequest;
 import static com.pulsepass.controller.ControllerFixtures.andreaResponse;
@@ -47,10 +49,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Pruebas de {@link UserController} (PRD Controladores §8.4, §11.2, §20, §21, §22.4;
  * TEST-CTRL-USR-001..005, AC-CTRL-007..008; P3-07 US-1..US-4).
  * <p>
- * {@code @WebMvcTest} carga solo este controlador y {@code GlobalExceptionHandler}; el servicio
- * es un {@code @MockitoBean} (QT-CTRL-002). Sin base de datos ni Testcontainers (§21,
+ * {@code @WebMvcTest} carga solo este controlador y {@code GlobalExceptionHandler}; los servicios
+ * son {@code @MockitoBean} (QT-CTRL-002). Sin base de datos ni Testcontainers (§21,
  * NFR-CTRL-008). {@link FixedClockTestConfiguration} aporta el {@code Clock} que necesita el
  * handler. Los JSON van escritos como texto (P3-D12).
+ * <p>
+ * Desde P4-06 el registro llega a {@link AuthService} (P4-D16, P4-06-J) y el cuerpo lleva
+ * {@code password} (PRD Seguridad §3.4); las búsquedas siguen en {@link UserService}.
  */
 @WebMvcTest(UserController.class)
 @Import({FixedClockTestConfiguration.class, WebSecurityTestConfiguration.class})
@@ -63,12 +68,16 @@ class UserControllerTest {
               "email": "andrea@email.com",
               "firstName": "Andrea",
               "lastName": "Rojas",
-              "birthDate": "2001-06-15"
+              "birthDate": "2001-06-15",
+              "password": "UnaFraseSeguraLarga2026!"
             }
             """;
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private AuthService authService;
 
     @MockitoBean
     private UserService userService;
@@ -79,7 +88,7 @@ class UserControllerTest {
     @DisplayName("TEST-CTRL-USR-001 / AC-CTRL-007: registro válido → 201 con UserResponse y sin Location")
     void registerReturns201WithUser() throws Exception {
         // ARRANGE
-        when(userService.register(eq(andreaRegisterRequest()))).thenReturn(andreaResponse());
+        when(authService.register(eq(andreaRegisterRequest()))).thenReturn(andreaResponse());
 
         // ACT + ASSERT
         mockMvc.perform(post("/api/users")
@@ -99,7 +108,9 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.birthDate").value("2001-06-15"));
 
         // US-1: el record llega igual campo a campo, incluida la fecha deserializada.
-        verify(userService).register(eq(andreaRegisterRequest()));
+        verify(authService).register(eq(andreaRegisterRequest()));
+        // P4-D16: el controlador no salta AuthService para crear un usuario sin credencial.
+        verify(userService, never()).register(any());
     }
 
     @Test
@@ -118,14 +129,14 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.details.length()").value(1))
                 .andExpect(jsonPath("$.details.email").value("Email must be a valid email address"));
 
-        verify(userService, never()).register(any());
+        verify(authService, never()).register(any());
     }
 
     @Test
     @DisplayName("TEST-CTRL-USR-003: username duplicado → 409 con ErrorResponse")
     void registerReturns409WhenUsernameIsDuplicated() throws Exception {
         // ARRANGE
-        when(userService.register(eq(andreaRegisterRequest())))
+        when(authService.register(eq(andreaRegisterRequest())))
                 .thenThrow(new DuplicateResourceException("Username already exists: andrea"));
 
         // ACT
@@ -137,14 +148,14 @@ class UserControllerTest {
         expectError(result, HttpStatus.CONFLICT, "Username already exists: andrea")
                 .andExpect(jsonPath("$.details").isEmpty());
 
-        verify(userService).register(eq(andreaRegisterRequest()));
+        verify(authService).register(eq(andreaRegisterRequest()));
     }
 
     @Test
     @DisplayName("AC-CTRL-008 / US-4: email duplicado → 409 sin exponer detalles internos")
     void registerReturns409WhenEmailIsDuplicated() throws Exception {
         // ARRANGE
-        when(userService.register(eq(andreaRegisterRequest())))
+        when(authService.register(eq(andreaRegisterRequest())))
                 .thenThrow(new DuplicateResourceException("Email already exists: andrea@email.com"));
 
         // ACT
@@ -159,7 +170,7 @@ class UserControllerTest {
                 .andExpect(content().string(not(containsString("uk_users_email"))))
                 .andExpect(content().string(not(containsString("trace"))));
 
-        verify(userService).register(eq(andreaRegisterRequest()));
+        verify(authService).register(eq(andreaRegisterRequest()));
     }
 
     @Test
@@ -168,9 +179,9 @@ class UserControllerTest {
         // ARRANGE: el controlador no valida la fecha; la regla es del servicio (§11.4).
         LocalDate futureBirthDate = LocalDate.of(2030, 1, 1); // DATO DE PRUEBA
         RegisterUserRequest request = new RegisterUserRequest(ANDREA_USERNAME, ANDREA_EMAIL,
-                "Andrea", "Rojas", null, null, futureBirthDate);
+                "Andrea", "Rojas", null, null, futureBirthDate, ANDREA_PASSWORD);
         String json = ANDREA_REGISTER_JSON.replace("\"2001-06-15\"", "\"2030-01-01\"");
-        when(userService.register(eq(request)))
+        when(authService.register(eq(request)))
                 .thenThrow(new BusinessRuleException("Birth date cannot be in the future: 2030-01-01"));
 
         // ACT
@@ -182,27 +193,28 @@ class UserControllerTest {
         expectError(result, HttpStatus.CONFLICT, "Birth date cannot be in the future: 2030-01-01")
                 .andExpect(jsonPath("$.details").isEmpty());
 
-        verify(userService).register(eq(request));
+        verify(authService).register(eq(request));
     }
 
     @Test
-    @DisplayName("§11.2 / US-3: cuerpo vacío → 400 con exactamente los 5 campos obligatorios y sin llamar al servicio")
+    @DisplayName("§11.2 / US-3 / Seguridad §3.4: cuerpo vacío → 400 con exactamente los 6 campos obligatorios y sin llamar al servicio")
     void registerReturns400WhenRequiredFieldsAreMissing() throws Exception {
         // ACT
         ResultActions result = mockMvc.perform(post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"));
 
-        // ASSERT
+        // ASSERT: desde P4-06, password es el sexto campo obligatorio (PRD Seguridad §3.4).
         expectError(result, HttpStatus.BAD_REQUEST, "Validation failed")
-                .andExpect(jsonPath("$.details.length()").value(5))
+                .andExpect(jsonPath("$.details.length()").value(6))
                 .andExpect(jsonPath("$.details.username").value("Username is required"))
                 .andExpect(jsonPath("$.details.email").value("Email is required"))
                 .andExpect(jsonPath("$.details.firstName").value("First name is required"))
                 .andExpect(jsonPath("$.details.lastName").value("Last name is required"))
-                .andExpect(jsonPath("$.details.birthDate").value("Birth date is required"));
+                .andExpect(jsonPath("$.details.birthDate").value("Birth date is required"))
+                .andExpect(jsonPath("$.details.password").value("Password is required"));
 
-        verify(userService, never()).register(any());
+        verify(authService, never()).register(any());
     }
 
     // ---------------------------------------------------------------- GET /api/users/by-email
@@ -260,6 +272,7 @@ class UserControllerTest {
         verify(userService, never()).findByEmail(anyString());
         verify(userService, never()).findByUsername(anyString());
         verify(userService, never()).register(any());
+        verify(authService, never()).register(any());
     }
 
     // ---------------------------------------------------------------- GET /api/users/by-username
@@ -317,6 +330,7 @@ class UserControllerTest {
         verify(userService, never()).findByEmail(anyString());
         verify(userService, never()).findByUsername(anyString());
         verify(userService, never()).register(any());
+        verify(authService, never()).register(any());
     }
 
     // ---------------------------------------------------------------- Auxiliares

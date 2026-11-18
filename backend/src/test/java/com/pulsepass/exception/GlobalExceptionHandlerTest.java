@@ -71,7 +71,8 @@ class GlobalExceptionHandlerTest {
 
     /**
      * RegisterUserRequest con el email solo con espacios: incumple @NotBlank y @Email a la vez.
-     * Datos de Andrea (§23); apellido y fecha son DATO DE PRUEBA.
+     * Datos de Andrea (§23); apellido y fecha son DATO DE PRUEBA. La contraseña (válida, del PRD
+     * Seguridad §10.2) se añadió en P4-06 para que el email siga siendo el único campo inválido.
      */
     private static final String USER_WITH_BLANK_EMAIL = """
             {
@@ -79,7 +80,8 @@ class GlobalExceptionHandlerTest {
               "email": "   ",
               "firstName": "Andrea",
               "lastName": "Rojas",
-              "birthDate": "2001-06-15"
+              "birthDate": "2001-06-15",
+              "password": "UnaFraseSeguraLarga2026!"
             }
             """;
 

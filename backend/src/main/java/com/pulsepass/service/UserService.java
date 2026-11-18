@@ -15,6 +15,11 @@ public interface UserService {
     /**
      * Registra un usuario activo con su perfil (FR-SVC-010, BR-USER-001..005).
      *
+     * <p>Desde la Fase 4, el registro público pasa por
+     * {@link com.pulsepass.service.AuthService#register}, que llama a este método dentro de su
+     * transacción y añade la credencial y {@code ROLE_USER} (PRD Seguridad §9.3; P4-06-N). Llamarlo
+     * directamente crearía un usuario sin credencial, que no podría iniciar sesión.
+     *
      * @throws com.pulsepass.exception.DuplicateResourceException si el username (BR-USER-001) o
      *         el email, ignorando mayúsculas (BR-USER-002), ya existen
      * @throws com.pulsepass.exception.BusinessRuleException si la fecha de nacimiento es futura

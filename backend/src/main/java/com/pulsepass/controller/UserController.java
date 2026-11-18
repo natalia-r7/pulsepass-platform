@@ -2,6 +2,7 @@ package com.pulsepass.controller;
 
 import com.pulsepass.dto.request.RegisterUserRequest;
 import com.pulsepass.dto.response.UserResponse;
+import com.pulsepass.service.AuthService;
 import com.pulsepass.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -16,9 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Endpoints de usuarios (PRD Controladores §7.4, §8.4; FR-CTRL-USR-001..003).
  * <p>
- * Controlador delgado: solo traduce HTTP a llamadas de {@link UserService} y devuelve sus DTO
- * (CTRL-001..004, CTRL-009).
+ * Controlador delgado: solo traduce HTTP a llamadas de {@link AuthService} y {@link UserService} y
+ * devuelve sus DTO (CTRL-001..004, CTRL-009).
  * <ul>
+ *   <li>El registro delega en {@link AuthService#register}, que crea en una sola transacción el
+ *       usuario, su credencial BCrypt y {@code ROLE_USER} (PRD Seguridad §9.3, FR-SEC-AUTH-001;
+ *       P4-D16, P4-06-J). La URL, el 201 y el {@code UserResponse} no cambian (NFR-SEC-005). Las
+ *       búsquedas siguen en {@link UserService}.</li>
  *   <li>El registro valida el cuerpo con {@code @Valid} antes de llamar al servicio (§11.2,
  *       CTRL-005); un request inválido responde 400 y no llega al servicio.</li>
  *   <li>Username y email duplicados (BR-USER-001..002) y la fecha de nacimiento futura
@@ -33,16 +38,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/users")
 public class UserController {
 
+    private final AuthService authService;
+
     private final UserService userService;
 
-    public UserController(UserService userService) {
+    public UserController(AuthService authService, UserService userService) {
+        this.authService = authService;
         this.userService = userService;
     }
 
-    /** {@code POST /api/users} → 201 con el usuario registrado (FR-CTRL-USR-001). */
+    /** {@code POST /api/users} → 201 con el usuario registrado (FR-CTRL-USR-001, FR-SEC-AUTH-001). */
     @PostMapping
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterUserRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.register(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
     /** {@code GET /api/users/by-email?email=...} → 200 con el usuario (FR-CTRL-USR-002). */

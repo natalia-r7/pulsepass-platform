@@ -8,6 +8,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -27,10 +29,22 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * {@link JwtAuthenticationFilter} (P4-05) se crea aquí y no es un bean, para que solo exista dentro
  * de esta cadena y se ejecute una sola vez (P4-05-f). Va antes de
  * {@code UsernamePasswordAuthenticationFilter} (§14.3).
+ * <p>
+ * El {@link PasswordEncoder} (P4-06-C) es BCrypt de fuerza 10 (P4-D10): genera hashes
+ * {@code $2a$10$…} de 60 caracteres, que caben en {@code password_hash VARCHAR(100)}. Lo usa el
+ * registro (P4-06) y lo usará el {@code AuthenticationManager} del login (P4-07).
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    /** Fuerza (log2 de las rondas) de BCrypt (P4-D10). */
+    static final int BCRYPT_STRENGTH = 10;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(BCRYPT_STRENGTH);
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,

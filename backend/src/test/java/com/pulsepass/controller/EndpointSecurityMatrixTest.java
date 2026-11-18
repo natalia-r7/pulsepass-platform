@@ -5,6 +5,7 @@ import com.pulsepass.domain.enums.Role;
 import com.pulsepass.security.SecurityPrincipal;
 import com.pulsepass.security.WebSecurityTestConfiguration;
 import com.pulsepass.service.ArtistService;
+import com.pulsepass.service.AuthService;
 import com.pulsepass.service.EventService;
 import com.pulsepass.service.TicketService;
 import com.pulsepass.service.UserService;
@@ -65,7 +66,7 @@ class EndpointSecurityMatrixTest {
              "eventDate": "2030-06-01T20:00:00", "minimumAge": 0, "venueCode": "VEN-SMR-01"}""";
     private static final String REGISTER_USER_JSON = """
             {"username": "matriz.usuario", "email": "matriz@pulsepass.test", "firstName": "Matriz",
-             "lastName": "Prueba", "birthDate": "1995-01-15"}""";
+             "lastName": "Prueba", "birthDate": "1995-01-15", "password": "ClaveDeMatriz2030!"}""";
     private static final String PURCHASE_TICKET_JSON = """
             {"userEmail": "matriz@pulsepass.test", "eventCode": "MTX-2030", "type": "GENERAL"}""";
 
@@ -111,6 +112,9 @@ class EndpointSecurityMatrixTest {
     private EventService eventService;
 
     @MockitoBean
+    private AuthService authService;
+
+    @MockitoBean
     private UserService userService;
 
     @MockitoBean
@@ -133,7 +137,7 @@ class EndpointSecurityMatrixTest {
         assertThat(result.getResponse().getStatus()).as(requirement + " " + operation + " como " + actor)
                 .isEqualTo(expected);
         if (expected == 401 || expected == 403) {
-            verifyNoInteractions(venueService, artistService, eventService, userService, ticketService);
+            verifyNoInteractions(venueService, artistService, eventService, authService, userService, ticketService);
         }
     }
 

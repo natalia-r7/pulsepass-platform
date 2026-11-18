@@ -53,6 +53,12 @@ class UserServiceImplTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(
             NOW.atZone(ClockConfig.APPLICATION_ZONE).toInstant(), ClockConfig.APPLICATION_ZONE);
 
+    /**
+     * Contraseña del request (PRD Seguridad §10.2), añadida en P4-06 solo para construir el record:
+     * {@code UserServiceImpl} no la usa; el hash lo guarda {@code AuthServiceImpl}.
+     */
+    private static final String PASSWORD = "UnaFraseSeguraLarga2026!";
+
     @Mock
     private UserRepository userRepository;
 
@@ -80,7 +86,8 @@ class UserServiceImplTest {
                 andreaProfile.getFirstName(), andreaProfile.getLastName(),
                 "3000000000",   // DATO DE PRUEBA (UserMapperTest)
                 "Santa Marta",  // DATO DE PRUEBA (UserMapperTest)
-                andreaProfile.getBirthDate());
+                andreaProfile.getBirthDate(),
+                PASSWORD);
         UserResponse expected = userResponseOf(andrea, 100L); // DATO DE PRUEBA: id
         when(userRepository.existsByUsername("andrea")).thenReturn(false);
         when(userRepository.existsByEmailIgnoreCase("andrea@email.com")).thenReturn(false);
@@ -264,7 +271,7 @@ class UserServiceImplTest {
     private static RegisterUserRequest requestFrom(User user, LocalDate birthDate) {
         UserProfile profile = user.getProfile();
         return new RegisterUserRequest(user.getUsername(), user.getEmail(), profile.getFirstName(),
-                profile.getLastName(), profile.getPhone(), profile.getCity(), birthDate);
+                profile.getLastName(), profile.getPhone(), profile.getCity(), birthDate, PASSWORD);
     }
 
     /** Respuesta que devuelve el mapper simulado; los valores no los calcula el servicio. */
