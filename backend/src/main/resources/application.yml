@@ -23,9 +23,10 @@ logging:
 
 # PRD de Seguridad §14.2 (P4-03): configuración del JWT de acceso. El secreto se lee siempre del
 # entorno; sin PULSEPASS_JWT_SECRET_BASE64 la aplicación no arranca (§12.2). Nunca un valor real aquí.
+# La duración es parametrizable (NFR-SEC-008, P4-11-B); por defecto, 15 minutos (§10.2).
 pulsepass:
   security:
     jwt:
       issuer: ${PULSEPASS_JWT_ISSUER:pulsepass-api}
       secret-base64: ${PULSEPASS_JWT_SECRET_BASE64}
-      access-token-ttl: PT15M
+      access-token-ttl: ${PULSEPASS_JWT_ACCESS_TOKEN_TTL:PT15M}

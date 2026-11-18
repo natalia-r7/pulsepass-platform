@@ -1,4 +1,4 @@
-# PulsePass — Backend · Fases 1 (Persistencia), 2 (Servicios) y 3 (Controladores REST)
+# PulsePass — Backend · Fases 1 (Persistencia), 2 (Servicios), 3 (Controladores REST) y 4 (Seguridad)
 
 Backend de PulsePass, plataforma de gestión y venta de entradas para eventos. Se implementa por
 fases, cada una según su PRD dentro de `docs/proyecto Pulsepass.pdf`:
@@ -11,9 +11,11 @@ fases, cada una según su PRD dentro de `docs/proyecto Pulsepass.pdf`:
 * **Fase 3 — Controladores REST** (PRD de la Capa de Controladores REST): 20 endpoints sobre los
   servicios, validación de entrada con Bean Validation, contrato uniforme de errores y pruebas
   de contrato HTTP con `@WebMvcTest` y MockMvc.
+* **Fase 4 — Seguridad** (PRD de la Capa de Seguridad con Spring Security y JJWT, páginas 86–111):
+  registro con contraseña BCrypt, login con JWT firmado, API sin sesión, roles USER, STAFF y ADMIN,
+  autorización por URL y propiedad de los recursos con `@PreAuthorize`.
 
-Siguen fuera de alcance: la seguridad (Fase 4: autenticación, roles y propiedad de los recursos)
-y el frontend.
+Siguen fuera de alcance: las pruebas E2E con Postman (Fase 5) y el frontend.
 
 ## Estado de las fases
 
@@ -22,6 +24,7 @@ y el frontend.
 | 1 — Persistencia | Persistencia | Cerrada | Commit `35b3ac6`, etiqueta `fase-1-persistencia` |
 | 2 — Servicios | Capa de Servicios | Cerrada | Commit `c863210`, etiqueta `fase-2-servicios`; [DoD](#definition-of-done-de-la-fase-2) en este documento |
 | 3 — Controladores REST | Capa de Controladores REST | Cerrada | Commit `2d78fce`, etiqueta `fase-3-controladores`; [DoD](#definition-of-done-de-la-fase-3) en este documento |
+| 4 — Seguridad | Capa de Seguridad (Spring Security y JJWT) | Cerrada | Etiqueta `fase-4-seguridad` (commit de cierre de este README); [DoD](#definition-of-done-de-la-fase-4) en este documento |
 
 ## Tecnologías
 
@@ -33,6 +36,8 @@ y el frontend.
 | Spring MVC (Fase 3) | `spring-webmvc` 7.0.10, con Tomcat embebido 11.0.27 |
 | Bean Validation (Fase 3) | Jakarta Validation 3.1.1, Hibernate Validator 9.1.5.Final |
 | Jackson (Fase 3, JSON) | 3.1.7 (`tools.jackson`) |
+| Spring Security (Fase 4) | 7.1.2 |
+| JJWT (Fase 4) | 0.13.0 (`jjwt-api`; `jjwt-impl` y `jjwt-jackson` en tiempo de ejecución) |
 | Spring Data JPA / Hibernate | Hibernate 7.4.13 |
 | PostgreSQL | 17 (imagen `postgres:17`) |
 | Flyway | 12.4.0 |
@@ -52,11 +57,19 @@ La Fase 3 agregó tres starters, con las versiones del BOM de Spring Boot 4.1.2 
 `spring-boot-starter-webmvc-test` (`@WebMvcTest` y MockMvc). Jackson, Tomcat y Hibernate
 Validator llegan a través de ellos.
 
+La Fase 4 agregó `spring-boot-starter-security`, las tres dependencias de JJWT 0.13.0 que fija el
+PRD (§14.1) y, en pruebas, `spring-boot-starter-security-test` en lugar de `spring-security-test`
+(ver [DEV-002](#desviación-dev-002-spring-boot-starter-security-test)). `jjwt-jackson` trae
+Jackson 2.21.7 solo en tiempo de ejecución para leer los claims; Spring MVC sigue usando Jackson 3.
+
 ## Requisitos para ejecutar
 
 * Java 21.
 * Docker en ejecución: las pruebas de integración levantan PostgreSQL 17 con Testcontainers.
 * No hace falta instalar Maven ni PostgreSQL.
+* Desde la Fase 4, la aplicación necesita la clave del JWT en `PULSEPASS_JWT_SECRET_BASE64` (ver
+  [Variables de entorno](#variables-de-entorno)). Las pruebas usan una clave ficticia propia y no
+  necesitan ninguna variable.
 
 ## Estructura
 
@@ -68,43 +81,66 @@ backend/
     ├── main/java/com/pulsepass/
     │   ├── PulsepassApplication.java
     │   ├── config/                  ClockConfig: bean Clock con zona America/Bogota (Fase 2)
-    │   ├── controller/              Venue, Artist, User, Event y TicketController (Fase 3)
-    │   ├── domain/                  Entidades JPA
-    │   │   └── enums/               EventCategory, EventStatus, TicketType, TicketStatus
+    │   ├── controller/              Venue, Artist, User, Event y TicketController (Fase 3);
+    │   │                            AuthController (Fase 4)
+    │   ├── domain/                  Entidades JPA; UserCredential, UserRole y UserRoleId (Fase 4)
+    │   │   └── enums/               EventCategory, EventStatus, TicketType, TicketStatus; Role (Fase 4)
     │   ├── dto/                     DTO como record (Fase 2)
     │   │   ├── request/             CreateEventRequest, RegisterUserRequest, PurchaseTicketRequest
-    │   │   │                        (con Bean Validation desde la Fase 3)
+    │   │   │                        (con Bean Validation desde la Fase 3); LoginRequest (Fase 4)
     │   │   └── response/            VenueResponse, ArtistResponse, UserResponse, EventResponse,
-    │   │                            EventSummaryResponse, TicketResponse; ErrorResponse (Fase 3)
+    │   │                            EventSummaryResponse, TicketResponse; ErrorResponse (Fase 3);
+    │   │                            AuthResponse y AuthenticatedUserResponse (Fase 4)
     │   ├── exception/               ResourceNotFoundException, DuplicateResourceException,
-    │   │                            BusinessRuleException (Fase 2); GlobalExceptionHandler (Fase 3)
+    │   │                            BusinessRuleException (Fase 2); GlobalExceptionHandler (Fase 3);
+    │   │                            ErrorResponseFactory (Fase 4)
     │   ├── mapper/                  Mappers MapStruct (Fase 2)
-    │   ├── repository/              Repositorios Spring Data JPA
-    │   └── service/                 Interfaces de servicio, TicketPricingStrategy y
-    │       │                        TicketCodeGenerator (Fase 2)
-    │       └── impl/                Implementaciones (Fase 2)
+    │   ├── repository/              Repositorios Spring Data JPA; UserCredential y UserRole (Fase 4)
+    │   ├── security/                Fase 4: SecurityConfig, MethodSecurityConfig, JWT (JwtService,
+    │   │                            JwtProperties, JwtConfig, AccessToken), JwtAuthenticationFilter,
+    │   │                            CustomUserDetailsService, LoginUser, SecurityPrincipal,
+    │   │                            RestAuthenticationEntryPoint, RestAccessDeniedHandler y RequestIdFilter
+    │   ├── service/                 Interfaces de servicio, TicketPricingStrategy y
+    │   │   │                        TicketCodeGenerator (Fase 2); AuthService y AuthorizationService (Fase 4)
+    │   │   └── impl/                Implementaciones (Fase 2 y Fase 4)
+    │   └── validation/              @MaxUtf8Bytes y su validador (Fase 4)
     ├── main/resources/
     │   ├── application.yml
-    │   └── db/migration/            V1, V2 y V3 (Flyway)
-    └── test/java/com/pulsepass/
-        ├── PulsepassApplicationTests.java
-        ├── TestcontainersConfiguration.java
-        ├── FixedClockTestConfiguration.java  Reloj fijo para las pruebas web (Fase 3)
-        ├── persistence/             Pruebas de integración y PersistenceFixtures
-        ├── mapper/                  Pruebas de los mappers reales (Fase 2)
-        ├── service/                 ServiceFixtures (Fase 2)
-        │   └── impl/                Pruebas unitarias de servicios y componentes (Fase 2)
-        ├── dto/request/             Pruebas de Bean Validation de los request DTO (Fase 3)
-        ├── exception/               GlobalExceptionHandlerTest (Fase 3)
-        └── controller/              Pruebas @WebMvcTest de los controladores y ControllerFixtures (Fase 3)
+    │   └── db/migration/            V1, V2, V3 y V4 (Flyway)
+    ├── .env.example                 Plantilla de variables de entorno, sin secretos (Fase 4)
+    └── test/
+        ├── resources/config/application.yml  Clave JWT ficticia de las pruebas (Fase 4)
+        └── java/com/pulsepass/
+            ├── PulsepassApplicationTests.java
+            ├── TestcontainersConfiguration.java, TestPulsepassApplication.java
+            ├── FixedClockTestConfiguration.java  Reloj fijo para las pruebas web (Fase 3)
+            ├── persistence/             Pruebas de integración y PersistenceFixtures
+            ├── mapper/                  Pruebas de los mappers reales (Fase 2)
+            ├── service/                 ServiceFixtures (Fase 2)
+            │   └── impl/                Pruebas unitarias de servicios y componentes (Fase 2 y Fase 4)
+            ├── dto/request/             Pruebas de Bean Validation de los request DTO (Fase 3 y Fase 4)
+            ├── exception/               GlobalExceptionHandlerTest (Fase 3)
+            ├── controller/              Pruebas @WebMvcTest de los controladores y ControllerFixtures (Fase 3);
+            │                            AuthControllerTest, EndpointSecurityMatrixTest y
+            │                            EventDraftVisibilityTest (Fase 4)
+            ├── security/                Pruebas de JWT, filtros y manejo de 401/403, y el soporte
+            │                            WebSecurityTestConfiguration y @WithSecurityPrincipal (Fase 4)
+            ├── validation/              MaxUtf8BytesValidatorTest (Fase 4)
+            └── integration/             Pruebas de seguridad con la aplicación completa (Fase 4)
 ```
 
 ## Arquitectura
 
 ```
-HTTP ──► Controller (@RestController)        valida el cuerpo (@Valid) y delega   [Fase 3]
+HTTP ──► RequestIdFilter                     request ID en el MDC                 [Fase 4]
+     ──► Cadena de Spring Security            JwtAuthenticationFilter + reglas de URL; 401/403 con
+             │                                ErrorResponse (EntryPoint / AccessDeniedHandler)  [Fase 4]
+             ▼
+         Controller (@RestController)        valida el cuerpo (@Valid) y delega   [Fase 3]
              │                ▲
              │                └── GlobalExceptionHandler (@RestControllerAdvice)  excepción → ErrorResponse
+             ▼
+         @PreAuthorize en la interfaz        propiedad con el bean authz           [Fase 4]
              ▼
          Service (interfaz) ──► ServiceImpl (@Service)                            [Fase 2]
                                  ├── Repository (Spring Data JPA)      acceso a datos, sin reglas
@@ -126,6 +162,9 @@ HTTP ──► Controller (@RestController)        valida el cuerpo (@Valid) y d
   NFR-006). No hay SQL en los servicios.
 * `open-in-view: false`: el mapeo a DTO ocurre dentro de la transacción del servicio, donde las
   relaciones `LAZY` todavía se pueden cargar.
+* La seguridad tiene dos niveles (Fase 4): las reglas de URL de `SecurityConfig` deciden quién
+  puede llamar a cada ruta según su rol, y `@PreAuthorize` en las interfaces de `UserService` y
+  `TicketService` decide si el recurso es suyo. Las reglas de negocio no cambian.
 
 ---
 
@@ -483,6 +522,191 @@ registran en el log del servidor (NFR-CTRL-007). `DataIntegrityViolationExceptio
 
 ---
 
+# Fase 4 — Seguridad
+
+Sigue el PRD de la Capa de Seguridad (páginas 86–111). La API es **sin sesión** (sin cookies ni
+`JSESSIONID`): cada petición protegida lleva un JWT en la cabecera `Authorization: Bearer …`.
+
+## Componentes
+
+| Componente | Responsabilidad |
+|---|---|
+| `SecurityConfig` | Cadena de filtros sin sesión (CSRF, formLogin, httpBasic, logout y requestCache desactivados), reglas de URL, `PasswordEncoder` BCrypt de fuerza 10 y `AuthenticationManager` explícito |
+| `MethodSecurityConfig` | Activa `@PreAuthorize` (`@EnableMethodSecurity`) |
+| `JwtService` | Emite y valida el JWT: HS256, `sub` (id del usuario), `iss`, `iat`, `exp` y `jti` |
+| `JwtAuthenticationFilter` | Lee una única cabecera Bearer, valida el token y carga la identidad actual del usuario |
+| `CustomUserDetailsService` | Carga la identidad del token (por id) y la del login (por username o email), con roles y estado |
+| `AuthService` | Registro atómico (usuario, credencial BCrypt y `ROLE_USER`), login y datos de `/me` |
+| `AuthorizationService` (bean `authz`) | Visibilidad de borradores para STAFF/ADMIN y comprobaciones de propiedad por id persistente |
+| `RestAuthenticationEntryPoint` / `RestAccessDeniedHandler` | 401 y 403 de la cadena de filtros con `ErrorResponse` |
+| `RequestIdFilter` | Request ID en el MDC y en cada línea de log |
+
+Datos (migración V4): `user_credentials` (1:1 con `users`, `password_hash VARCHAR(100)`) y
+`user_roles` (PK `user_id` + `role`, con `CHECK` USER, STAFF y ADMIN). V4 asigna `ROLE_USER` a los
+usuarios existentes sin crearles credencial (P4-D11).
+
+## Endpoints de autenticación
+
+| Verbo | Ruta | Acceso | Request | Respuesta |
+|---|---|---|---|---|
+| POST | `/api/users` | Público | `RegisterUserRequest` + `password` (12 caracteres mínimo, 72 bytes UTF-8 máximo) | 201 `UserResponse` (sin contraseña ni hash, sin token) |
+| POST | `/api/auth/login` | Público | `LoginRequest(identifier, password)`; `identifier` es el username exacto o el email sin distinguir mayúsculas | 200 `AuthResponse(accessToken, tokenType = "Bearer", expiresIn)`; `expiresIn` son 900 segundos por defecto y cambia según `PULSEPASS_JWT_ACCESS_TOKEN_TTL` |
+| GET | `/api/auth/me` | Autenticado | — | 200 `AuthenticatedUserResponse(id, username, email, roles)`; `roles` sin el prefijo `ROLE_`, en orden alfabético |
+
+Unas credenciales incorrectas, un usuario inexistente, inactivo o sin credencial reciben **el
+mismo** 401 «Invalid credentials» (P4-D9). Una contraseña de más de 72 bytes en el login responde
+400 sin intentar autenticar (P4-07-A).
+
+## Matriz de autorización
+
+Las 20 operaciones heredadas y las 2 de autenticación (22 en total), probadas para los cuatro
+actores en `EndpointSecurityMatrixTest`. «Propiedad» indica una regla `@PreAuthorize` adicional en
+el servicio, probada en `OwnershipSecurityIT`. Un anónimo denegado recibe 401; un usuario
+autenticado sin permiso, 403.
+
+| Requisito | Operación | Anónimo | USER | STAFF | ADMIN | Propiedad |
+|---|---|---|---|---|---|---|
+| FR-SEC-VEN-01 | `GET /api/venues/{code}` | ✅ | ✅ | ✅ | ✅ | — |
+| FR-SEC-VEN-02 | `GET /api/venues/active` | ✅ | ✅ | ✅ | ✅ | — |
+| FR-SEC-EVT-01 | `POST /api/events` | 401 | 403 | 403 | ✅ | — |
+| FR-SEC-EVT-02 | `GET /api/events/{eventCode}` | ✅* | ✅* | ✅ | ✅ | *Solo `PUBLISHED`; otro estado responde 404 (P4-D2) |
+| FR-SEC-EVT-03 | `GET /api/events/published` | ✅ | ✅ | ✅ | ✅ | — |
+| FR-SEC-EVT-04 | `PATCH /api/events/{eventCode}/publish` | 401 | 403 | 403 | ✅ | — |
+| FR-SEC-EVT-05 | `POST /api/events/{eventCode}/artists/{artistId}` | 401 | 403 | 403 | ✅ | — |
+| FR-SEC-EVT-06 | `GET /api/events/by-artist` | ✅ | ✅ | ✅ | ✅ | Solo `PUBLISHED` para todos (P2-D15, P4-D4) |
+| FR-SEC-ART-01..03 | `GET /api/artists/{id}`, `/by-stage-name`, `/active` | ✅ | ✅ | ✅ | ✅ | — |
+| FR-SEC-USR-01 | `POST /api/users` | ✅ | ✅ | ✅ | ✅ | Rol inicial siempre USER |
+| FR-SEC-USR-02 | `GET /api/users/by-email` | 401 | ✅ | ✅ | ✅ | Propio usuario o ADMIN |
+| FR-SEC-USR-03 | `GET /api/users/by-username` | 401 | ✅ | ✅ | ✅ | Propio usuario o ADMIN |
+| FR-SEC-TKT-01 | `POST /api/tickets` | 401 | ✅ | 403 | 403 | USER y `userEmail` propio |
+| FR-SEC-TKT-02 | `GET /api/tickets/{ticketCode}` | 401 | ✅ | ✅ | ✅ | Propietario, STAFF o ADMIN |
+| FR-SEC-TKT-03 | `GET /api/tickets/by-user` | 401 | ✅ | ✅ | ✅ | Email propio o ADMIN |
+| FR-SEC-TKT-04 | `GET /api/events/{eventCode}/tickets/paid` | 401 | 403 | ✅ | ✅ | STAFF o ADMIN |
+| FR-SEC-TKT-05 | `PATCH /api/tickets/{ticketCode}/cancel` | 401 | ✅ | ✅ | ✅ | Propietario o ADMIN (STAFF no cancela tickets ajenos) |
+| FR-SEC-TKT-06 | `PATCH /api/tickets/{ticketCode}/use` | 401 | 403 | ✅ | ✅ | STAFF o ADMIN |
+| FR-SEC-AUTH-002 | `POST /api/auth/login` | ✅ | ✅ | ✅ | ✅ | — |
+| FR-SEC-AUTH-010 | `GET /api/auth/me` | 401 | ✅ | ✅ | ✅ | — |
+
+Cualquier otra ruta exige autenticación (`anyRequest().authenticated()`, P4-D7). No hay jerarquía
+de roles (P4-D8): ADMIN no compra tickets por tener ese rol.
+
+## Propiedad de los recursos
+
+* La comprueba el bean `authz` comparando **ids persistentes**: el id del usuario autenticado
+  (claim `sub`) con el del usuario buscado o el propietario del ticket leído de la base de datos.
+  Nunca se confía solo en el email del request (§11.1).
+* Un ticket ajeno responde **403**; un ticket inexistente, **404**. Las búsquedas de usuario, el
+  listado por email y la compra responden 403 aunque el usuario objetivo no exista (P4-D1).
+* Las denegaciones de `@PreAuthorize` llegan a `GlobalExceptionHandler`, que responde 403 con
+  `ErrorResponse` y registra `Access denied: METHOD ruta userId=N` (P4-D19).
+* STAFF tiene alcance global en el MVP: consulta cualquier ticket y marca su uso (§11.1).
+
+## Contrato del JWT
+
+* HS256 con la clave de `PULSEPASS_JWT_SECRET_BASE64` (al menos 32 bytes); se rechaza cualquier
+  otro algoritmo, incluido `none`.
+* Claims obligatorios: `sub` (id positivo del usuario), `iss`, `iat`, `exp` y `jti`. Sin roles en
+  el token: se leen de la base de datos en cada petición, igual que el estado `active`.
+* Duración por defecto: 900 segundos (`PT15M`). Margen de reloj 0; un `iat` futuro se rechaza.
+* El token solo se acepta en una única cabecera `Authorization: Bearer`; nunca en la query string.
+* Un token inválido, caducado o manipulado responde 401 también en las rutas públicas (P4-D6).
+
+Los 401 incluyen la cabecera `WWW-Authenticate: Bearer`. Mensajes (P4-D9): «Authentication is
+required», «Invalid credentials» y «Access denied».
+
+## Roles y usuarios de prueba
+
+* **Registro público:** siempre `ROLE_USER`; un campo `role` en el JSON se ignora (TC-SEC-016).
+* **STAFF y ADMIN** solo existen en las pruebas (P4-D12): las clases de `integration/` registran
+  usuarios por la API y les cambian el rol en la base de datos. No hay usuarios privilegiados en
+  las migraciones ni en `application.yml`.
+* **Usuarios anteriores a la Fase 4** (P4-D11): tienen `ROLE_USER` pero no credencial, así que no
+  pueden iniciar sesión hasta activarlos manualmente. No existe una contraseña por defecto.
+
+### Activación manual de un usuario anterior a la Fase 4
+
+1. Generar el hash BCrypt de fuerza 10 de una contraseña temporal (12 caracteres o más) con la
+   misma clase que usa la aplicación. Los JAR los descarga Maven al ejecutar `./mvnw` por primera
+   vez:
+
+   ```bash
+   CP="$HOME/.m2/repository/org/springframework/security/spring-security-crypto/7.1.2/spring-security-crypto-7.1.2.jar:$HOME/.m2/repository/commons-logging/commons-logging/1.3.6/commons-logging-1.3.6.jar"
+   printf '%s\n' 'System.out.println(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(10).encode("CONTRASENA_TEMPORAL"));' '/exit' | jshell -q --class-path "$CP" -
+   ```
+
+   Imprime un hash `$2a$10$…` de 60 caracteres.
+2. Insertar la credencial del usuario en la base de datos:
+
+   ```sql
+   INSERT INTO user_credentials (user_id, password_hash)
+   VALUES ((SELECT id FROM users WHERE email = 'usuario@ejemplo.com'), '<hash del paso 1>');
+   ```
+
+3. Entregar la contraseña temporal al usuario por un canal seguro. El cambio de contraseña está
+   fuera del alcance del PRD (§5.2).
+
+## Variables de entorno
+
+La plantilla está en [`.env.example`](.env.example); `.env` está ignorado por Git. Spring Boot no lee
+`.env`: las variables se exportan antes de arrancar.
+
+| Variable | Obligatoria | Por defecto | Uso |
+|---|---|---|---|
+| `PULSEPASS_JWT_SECRET_BASE64` | Sí | — | Clave HMAC en Base64, de al menos 32 bytes (`openssl rand -base64 32`). Sin ella la aplicación no arranca |
+| `PULSEPASS_JWT_ISSUER` | No | `pulsepass-api` | Claim `iss` |
+| `PULSEPASS_JWT_ACCESS_TOKEN_TTL` | No | `PT15M` | Duración del token en ISO-8601; positiva y de segundos enteros |
+
+Las pruebas usan la clave ficticia de `src/test/resources/config/application.yml` (DATO DE PRUEBA)
+y no necesitan variables.
+
+## Comandos de verificación
+
+Pruebas de la Fase 4 (con Docker en ejecución, desde `backend/`). Entre los dos comandos cubren las
+348 pruebas que añadió la Fase 4. El primero ejecuta las unitarias y web, incluidas las clases
+anteriores que recibieron 10 pruebas cada una (`EventServiceImplTest` y
+`RegisterUserRequestValidationTest`): informa 335 pruebas, de las que 293 son de la Fase 4 y 42 son
+las anteriores de esas dos clases (31 y 11).
+
+```bash
+./mvnw test -Dtest='Jwt*Test,RequestIdFilter*Test,SecurityExceptionHandlingTest,CustomUserDetailsServiceTest,Auth*Test,AuthorizationServiceImplTest,LoginRequestValidationTest,MaxUtf8BytesValidatorTest,EndpointSecurityMatrixTest,EventDraftVisibilityTest,EventServiceImplTest,RegisterUserRequestValidationTest'
+```
+
+El segundo ejecuta las de integración con PostgreSQL: 55 pruebas.
+
+```bash
+./mvnw test -Dtest='Security*IT,Auth*IT,OwnershipSecurityIT'
+```
+
+Arranque local con PostgreSQL de Testcontainers y la clave de pruebas (`TestPulsepassApplication`),
+en `http://localhost:8080`:
+
+```bash
+./mvnw spring-boot:test-run
+```
+
+Con la aplicación en marcha, el flujo registro → login → `/me`:
+
+```bash
+curl -s -X POST http://localhost:8080/api/users -H 'Content-Type: application/json' \
+  -d '{"username":"demo.andrea","email":"demo.andrea@pulsepass.test","firstName":"Andrea","lastName":"Demo","birthDate":"2001-06-15","password":"UnaFraseSeguraLarga2026!"}'
+```
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' \
+  -d '{"identifier":"demo.andrea","password":"UnaFraseSeguraLarga2026!"}' | sed -E 's/.*"accessToken":"([^"]+)".*/\1/')
+```
+
+```bash
+curl -s http://localhost:8080/api/auth/me -H "Authorization: Bearer $TOKEN"
+```
+
+Resultado comprobado (2026-11-18): 201, 200 con `"expiresIn":900`, y 200 con
+`{"id":1,"username":"demo.andrea","email":"demo.andrea@pulsepass.test","roles":["USER"]}`. Sin token,
+`/api/auth/me` responde 401. Los datos son ficticios y la base de datos se descarta al detener la
+aplicación.
+
+---
+
 # Pruebas
 
 ## Cómo ejecutarlas
@@ -511,9 +735,12 @@ Las pruebas web y de validación de la Fase 3 tampoco necesitan Docker:
 ./mvnw test -Dtest='*ControllerTest,GlobalExceptionHandlerTest,*RequestValidationTest'
 ```
 
+Las pruebas de la Fase 4 se pueden ejecutar por separado con los comandos de
+[Comandos de verificación](#comandos-de-verificación).
+
 Maven Surefire ejecuta tanto las clases `*Test` como las `*IT`, por lo que `./mvnw clean test`
 incluye todas las pruebas de integración (QT-010). La configuración de Surefire no se modificó en
-las Fases 2 ni 3.
+las Fases 2, 3 ni 4.
 
 ## Qué cubren
 
@@ -536,7 +763,12 @@ incluidos los servicios, los mappers, el bean `Clock` y, desde la Fase 3, la cap
 | `TicketRepositoryIT` | 12 | FR-TKT-001..008, AC-005, AC-008, QT-006..QT-009 |
 | `EventSearchIT` | 4 | FR-SRC-001..004, AC-007, QT-008 |
 | `ServiceRepositoryIT` (Fase 2) | 16 | Los 9 métodos del PRD de Servicios §32 (P2-D6..P2-D8) |
+| `SecurityMigrationIT` (Fase 4) | 16 | V4: tablas, restricciones, `@MapsId`, roles y la migración de V3 a V4 con usuarios existentes (P4-D11) |
+| `SecurityPrincipalQueryCountIT` (Fase 4) | 2 | Consultas fijas, sin N+1, al cargar la identidad (NFR-SEC-003) |
 | `PulsepassApplicationTests` | 1 | Arranque completo de la aplicación |
+
+`FlywayMigrationIT` comprueba desde la Fase 4 que se aplican V1 a V4 (QT-001, P4-D17). Las pruebas de
+integración de seguridad con la aplicación completa están en [Pruebas de seguridad](#pruebas-de-seguridad-fase-4).
 
 Los AC de esta tabla son los del PRD de Persistencia.
 
@@ -561,7 +793,7 @@ reales en sus propias clases (P2-D9), y en las pruebas de servicios se simulan (
 | `EventMapperTest` | 5 | `toResponse` y `toSummary`, artistas incluidos |
 | `VenueServiceImplTest` | 4 | FR-SVC-001..002, BR-VENUE-001..002 |
 | `ArtistServiceImplTest` | 6 | FR-SVC-009, BR-ARTIST-001..002 |
-| `EventServiceImplTest` | 31 | FR-SVC-003..008, BR-EVENT-001..011, TEST-EVENT-001..008, AC-001..003 |
+| `EventServiceImplTest` | 41 | FR-SVC-003..008, BR-EVENT-001..011, TEST-EVENT-001..008, AC-001..003; desde la Fase 4, 10 más de la visibilidad de borradores (P4-04b) |
 | `UserServiceImplTest` | 10 | FR-SVC-010..012, BR-USER-001..005, TEST-USER-001..004 |
 | `TicketServiceImplTest` | 44 | FR-SVC-013..018, BR-TICKET-001..014, TEST-TICKET-001..012, AC-004..011 |
 | `TicketPricingStrategyImplTest` | 11 | §28, BR-TICKET-009, TP-1..TP-5 |
@@ -584,7 +816,7 @@ Testcontainers ni `@SpringBootTest` (§17, NFR-CTRL-008). Los JSON van escritos 
 | Clase | Pruebas | Cubre |
 |---|---|---|
 | `CreateEventRequestValidationTest` | 9 | §11.1: obligatorios, `@Min(0)` y longitudes (P3-D4) |
-| `RegisterUserRequestValidationTest` | 11 | §11.2: obligatorios, formato de email y longitudes |
+| `RegisterUserRequestValidationTest` | 21 | §11.2: obligatorios, formato de email y longitudes; desde la Fase 4, 10 más de la contraseña (P4-06) |
 | `PurchaseTicketRequestValidationTest` | 11 | §11.3: obligatorios, formato de email y longitudes |
 | `GlobalExceptionHandlerTest` | 16 | §13–§16: cada fila de la tabla del contrato de errores, con un controlador de sondeo que solo existe en la prueba |
 | `VenueControllerTest` | 4 | TEST-CTRL-VEN-001..003, AC-CTRL-001..002 |
@@ -599,6 +831,38 @@ antes del servicio, que no se le llama (`verify(..., never())`) (QT-CTRL-003..01
 mínimas de §22 están identificadas por su ID; las demás cubren límites, 404 adicionales y listas
 vacías.
 
+Desde la Fase 4, estas pruebas importan además `WebSecurityTestConfiguration` y usan la cadena de
+seguridad real (nunca `addFilters = false`); la identidad se indica con `@WithSecurityPrincipal`.
+Sus aserciones no cambiaron, salvo las del registro que exige la contraseña (P4-06).
+
+### Pruebas de seguridad (Fase 4)
+
+| Clase | Pruebas | Tipo | Cubre |
+|---|---|---|---|
+| `JwtServiceTest` | 35 | Unitaria | Emisión y validación: firma, issuer, `sub`, `exp`, `iat`, `jti`, algoritmo (T-SEC-007, T-SEC-008, TC-AUTH-011) |
+| `JwtPropertiesTest` | 16 | Unitaria | Validación de la clave, el issuer y la duración |
+| `JwtConfigTest` | 3 | Arranque | Sin clave, o con una de menos de 32 bytes, la aplicación no arranca (§12.2) |
+| `JwtAuthenticationFilterTest` | 19 | Unitaria | Sin Bearer, Bearer válido e inválido, doble cabecera, autenticación ya establecida |
+| `CustomUserDetailsServiceTest` | 14 | Unitaria | Usuario existente, inexistente, inactivo, sin credencial y roles (§17.1) |
+| `RequestIdFilterTest`, `RequestIdFilterRegistrationTest` | 4 y 6 | Unitaria y web | Request ID en el MDC; filtro registrado una vez, antes de Spring Security; logs de 401 y 403 con request ID y sin query string ni `Authorization` (NFR-SEC-006) |
+| `SecurityExceptionHandlingTest` | 6 | Web | 401 y 403 con `ErrorResponse` desde la cadena y desde Spring MVC (P4-D19) |
+| `JwtAuthenticationWebMvcTest` | 11 | Web | Tokens reales: válido, manipulado, caducado, en query string y de un usuario desactivado (T-SEC-016) |
+| `EndpointSecurityMatrixTest` | 96 | Web | Las 22 operaciones × 4 actores (§17.4) y casos de 401, 403, sesión y CSRF |
+| `EventDraftVisibilityTest` | 21 | Web | Borradores solo visibles para STAFF y ADMIN (P4-D2, T-SEC-017) |
+| `AuthControllerTest` | 7 | Web | Login y `/me` (T-SEC-005, T-SEC-006, T-SEC-019) |
+| `LoginRequestValidationTest` | 8 | Unitaria | Validación del login y `toString` sin secretos |
+| `MaxUtf8BytesValidatorTest` | 4 | Unitaria | Límite de 72 bytes UTF-8 |
+| `AuthServiceImplTest` | 9 | Unitaria | Registro y login (§17.1: credenciales correctas, incorrectas, usuario inactivo, token solo tras autenticar) |
+| `AuthorizationServiceImplTest` | 14 | Unitaria | Visibilidad y propiedad: propietario, tercero, inexistente, anónimo |
+| `AuthRegistrationIT` | 4 | Integración | Registro atómico con rollback real, hash BCrypt, solo `ROLE_USER` (UC-SEC-01, TC-SEC-016) |
+| `AuthLoginIT` | 7 | Integración | Login y `/me` con JWT real (UC-SEC-02, TC-AUTH-002..006 y 012) |
+| `OwnershipSecurityIT` | 16 | Integración | Propiedad para USER, STAFF y ADMIN, distinguiendo `@PreAuthorize` de las reglas de URL (T-SEC-009..015) |
+| `SecurityEndToEndIT` | 10 | Integración | Escenario de demostración de §23, pasos 1 a 10 (UC-SEC-01..10) |
+
+Las clases de `integration/` usan `@SpringBootTest` con PostgreSQL real y tokens emitidos por el
+login. Confirman sus transacciones, así que borran por id solo los datos que crean. STAFF y ADMIN
+se crean cambiando el rol de un usuario registrado (P4-D12).
+
 ### Resultados registrados
 
 * **Cierre de la Fase 1:** `./mvnw clean test` terminó con `Tests run: 46, Failures: 0, Errors: 0,
@@ -609,6 +873,12 @@ vacías.
 * **Cierre de la Fase 3** (2026-11-16, sobre el commit `7e1f386`): `./mvnw clean test` terminó con
   `Tests run: 316, Failures: 0, Errors: 0, Skipped: 0` y `BUILD SUCCESS`. Las 110 nuevas son 31 de
   validación de los request DTO, 16 de `GlobalExceptionHandlerTest` y 63 de los controladores.
+* **Cierre de la Fase 4** (2026-11-18, sobre el commit `2dd79b2` más este README, `.env.example` y
+  la duración parametrizable de `application.yml`): `./mvnw clean test` terminó con
+  `Tests run: 664, Failures: 0, Errors: 0, Skipped: 0` y `BUILD SUCCESS`. Las 348 nuevas son las de
+  la tabla de [Pruebas de seguridad](#pruebas-de-seguridad-fase-4), las de `SecurityMigrationIT` y
+  `SecurityPrincipalQueryCountIT`, y las añadidas a `EventServiceImplTest` y
+  `RegisterUserRequestValidationTest`.
 
 ## Avisos esperados en la salida
 
@@ -621,8 +891,19 @@ pruebas pasan.
 | `Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK.` | Mockito | Mockito carga su agente en tiempo de ejecución. Hoy funciona; una versión futura del JDK podría impedirlo, y entonces habría que declarar Mockito como agente en Surefire |
 | `A Java agent has been loaded dynamically (... byte-buddy-agent-1.18.15.jar)` y `Dynamic loading of agents will be disallowed by default in a future release` | JVM | El mismo agente de Mockito, visto desde la JVM |
 | `Sharing is only supported for boot loader classes because bootstrap classpath has been appended` | JVM | Consecuencia del agente anterior; solo afecta al uso compartido de clases de la JVM |
-| `HHH000247: ErrorCode: 0, SQLState: 23505` / `23514` con `duplicate key value violates unique constraint ...` o `violates check constraint ...` (11 veces) | Hibernate | Las registran las pruebas de integración que violan restricciones **a propósito** para comprobar que PostgreSQL las rechaza |
-| `ERROR ... GlobalExceptionHandler : Unexpected error while processing the request`, con la traza (5 veces) | `GlobalExceptionHandler` | Lo registran a propósito las pruebas que provocan errores 5xx (4 en `GlobalExceptionHandlerTest` y 1 en `TicketControllerTest`). Es el log del servidor; la respuesta HTTP solo dice «Unexpected error» |
+| `HHH000247: ErrorCode: 0, SQLState: 23505` / `23514` con `duplicate key value violates unique constraint ...` o `violates check constraint ...` (13 veces) | Hibernate | Las registran las pruebas de integración que violan restricciones **a propósito** para comprobar que PostgreSQL las rechaza (11 de la Fase 1 y 2 de `SecurityMigrationIT`) |
+| `ERROR ... GlobalExceptionHandler : Unexpected error while processing the request`, con la traza (6 veces) | `GlobalExceptionHandler` | Lo registran a propósito las pruebas que provocan errores 5xx (4 en `GlobalExceptionHandlerTest`, 1 en `TicketControllerTest` y 1 en la prueba de atomicidad de `AuthRegistrationIT`). Es el log del servidor; la respuesta HTTP solo dice «Unexpected error» |
+| `INFO ... Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService` (15 veces) | Spring Security | Una vez por cada contexto de Spring que se arranca. Aparece aunque exista el `AuthenticationManager` explícito de `SecurityConfig`, que es el que usa el login |
+| `WARN ... Exception encountered during context initialization` (2 veces) | Spring | Lo provoca a propósito `JwtConfigTest`, que comprueba que la aplicación no arranca sin clave o con una clave corta |
+| `INFO ... Authentication required: METHOD ruta` (50 veces) | `c.p.s.RestAuthenticationEntryPoint` (42) y `c.p.exception.GlobalExceptionHandler` (8) | Los 401 que provocan las pruebas de seguridad: 42 en la cadena de filtros y 8 dentro de Spring MVC (5 logins fallidos por HTTP, en `AuthLoginIT` y `AuthControllerTest`, y 3 sondas de `SecurityExceptionHandlingTest`) |
+| `WARN ... Access denied: METHOD ruta userId=N` (29 veces) | `c.p.security.RestAccessDeniedHandler` (17) y `c.p.exception.GlobalExceptionHandler` (12) | Los 403 que provocan las pruebas: 17 de las reglas de URL, en la cadena de filtros, y 12 dentro de Spring MVC (8 de `@PreAuthorize` en `OwnershipSecurityIT`, 3 en `SecurityEndToEndIT` y 1 de la sonda de `SecurityExceptionHandlingTest`) |
+| `INFO ... Login succeeded: userId=N` y `INFO ... Login failed: reason=<tipo>` | `AuthServiceImpl` | Registro de los logins de las pruebas (NFR-SEC-006). Sin username/email utilizado para iniciar sesión, contraseña, hash ni token. Un login fallido deja además el INFO «Authentication required» del manejador |
+
+Estos INFO y WARN no registran la query string, la cabecera `Authorization`, contraseñas ni tokens JWT.
+
+Ninguna línea de la salida contiene las contraseñas de prueba ni un JWT; tampoco aparece
+«Using generated security password», porque PulsePass no usa el usuario en memoria de Spring Boot
+(P4-04-c).
 
 ---
 
@@ -723,6 +1004,38 @@ clase incluye además las adicionales descritas en [Pruebas](#pruebas-web-y-de-v
 AC-CTRL-015 y AC-CTRL-016 son estructurales: ningún controlador depende de un repositorio ni
 devuelve entidades JPA (ver el [DoD](#definition-of-done-de-la-fase-3), puntos 4 y 6).
 
+## Fase 4 — Seguridad (FR-SEC / NFR-SEC → componente → pruebas)
+
+Sigue la matriz del PRD de Seguridad (§18). E2E indica el paso de `SecurityEndToEndIT` (§23).
+
+| Requisito | Componente | Pruebas |
+|---|---|---|
+| FR-SEC-AUTH-001 Registro | `AuthService`, `UserService`, V4 | `AuthRegistrationIT`, `AuthServiceImplTest`, `RegisterUserRequestValidationTest`; E2E 1 |
+| FR-SEC-AUTH-002 Login | `AuthController`, `AuthenticationManager`, `JwtService` | `AuthControllerTest` (T-SEC-005), `AuthLoginIT` (TC-AUTH-002/003); E2E 2 |
+| FR-SEC-AUTH-003 Contraseña incorrecta | `AuthenticationManager`, `GlobalExceptionHandler` | `AuthControllerTest` (T-SEC-006), `AuthLoginIT` (TC-AUTH-004/005) |
+| FR-SEC-AUTH-004 Usuario inactivo | `CustomUserDetailsService`, `JwtAuthenticationFilter` | `AuthLoginIT`, `JwtAuthenticationWebMvcTest` (T-SEC-016), `CustomUserDetailsServiceTest`; E2E 10 |
+| FR-SEC-AUTH-005 Emisión del JWT | `JwtService` | `JwtServiceTest` |
+| FR-SEC-AUTH-006 Validación del JWT | `JwtService` | `JwtServiceTest` (T-SEC-007/008), `JwtAuthenticationWebMvcTest`; E2E 9 |
+| FR-SEC-AUTH-007 Solo cabecera Bearer | `JwtAuthenticationFilter` | `JwtAuthenticationFilterTest`, `JwtAuthenticationWebMvcTest`, `AuthLoginIT` (TC-AUTH-012) |
+| FR-SEC-AUTH-008 Sin sesión | `SecurityConfig` | `EndpointSecurityMatrixTest`, `JwtAuthenticationWebMvcTest` |
+| FR-SEC-AUTH-009 Contexto desde el usuario persistido | `CustomUserDetailsService`, `JwtAuthenticationFilter` | `JwtAuthenticationFilterTest`, `CustomUserDetailsServiceTest`, `AuthLoginIT` (roles actuales en `/me`) |
+| FR-SEC-AUTH-010 `/api/auth/me` | `AuthController`, `AuthService` | `AuthControllerTest`, `AuthLoginIT` (TC-AUTH-006) |
+| FR-SEC-VEN-01/02, FR-SEC-ART-01..03 | `SecurityConfig` | `EndpointSecurityMatrixTest` |
+| FR-SEC-EVT-01..06 | `SecurityConfig`, `AuthorizationService`, `EventService` | `EndpointSecurityMatrixTest` (T-SEC-001..004, 014), `EventDraftVisibilityTest` (T-SEC-017); E2E 3, 6 y 7 |
+| FR-SEC-USR-01..03 | `AuthService`, `UserService`, `AuthorizationService` | `EndpointSecurityMatrixTest`, `OwnershipSecurityIT` (T-SEC-015), `AuthRegistrationIT` (TC-SEC-016) |
+| FR-SEC-TKT-01..06 | `AuthorizationService`, `TicketService` | `EndpointSecurityMatrixTest`, `OwnershipSecurityIT` (T-SEC-009..013); E2E 4, 5 y 8 |
+| SEC-009 / NFR-SEC-002 401 y 403 uniformes | `RestAuthenticationEntryPoint`, `RestAccessDeniedHandler`, `GlobalExceptionHandler` | `SecurityExceptionHandlingTest`, `EndpointSecurityMatrixTest`, `AuthControllerTest` (T-SEC-019) |
+| NFR-SEC-001 Sin secretos expuestos | `toString` de los DTO y de `AccessToken`, logs | `LoginRequestValidationTest`, `RegisterUserRequestValidationTest`, `JwtServiceTest`, `RequestIdFilterRegistrationTest` |
+| NFR-SEC-003 Sin N+1 | `CustomUserDetailsService` | `SecurityPrincipalQueryCountIT` |
+| NFR-SEC-004 Registro atómico | `AuthService` | `AuthRegistrationIT` (rollback con los cuatro INSERT ejecutados) |
+| NFR-SEC-005 / NFR-SEC-010 Compatibilidad y regresión | Todas | Pruebas de controladores de la Fase 3 con identidad (T-SEC-020), `EndpointSecurityMatrixTest` |
+| NFR-SEC-006 Trazabilidad | `RequestIdFilter`, logs de 401, 403 y login | `RequestIdFilterTest`, `RequestIdFilterRegistrationTest` |
+| NFR-SEC-008 Configuración (**parcial**) | `JwtProperties`, `application.yml` | Emisor, clave y duración parametrizables: `JwtPropertiesTest`, `JwtConfigTest`; la variable de la duración se comprobó a mano (con `PT5M`, `expiresIn` = 300). **La política CORS sigue pendiente** (aplazada; ver «Limitaciones conocidas») |
+| NFR-SEC-009 Sin registro privilegiado | `AuthService` | `AuthRegistrationIT`, `AuthServiceImplTest` |
+
+NFR-SEC-007 (HTTPS fuera de localhost) depende del despliegue y queda fuera de este repositorio
+(ver «Limitaciones conocidas»).
+
 ---
 
 # Definition of Done de la Fase 2
@@ -817,6 +1130,40 @@ grep -rn 'try {\|catch (' backend/src/main/java/com/pulsepass/controller
 grep -c 'public ResponseEntity<' backend/src/main/java/com/pulsepass/controller/*.java
 ```
 
+# Definition of Done de la Fase 4
+
+Revisión de los 14 puntos del PRD de Seguridad §22. Los puntos 1 a 13 se verifican sobre el commit
+`2dd79b2` más la duración parametrizable de `application.yml` (P4-11-B); el punto 14, sobre este
+README.
+
+| # | Punto del DoD | Estado | Evidencia |
+|---|---|---|---|
+| 1 | Se mantienen las 20 rutas heredadas y sus respuestas exitosas | ✅ | `EndpointSecurityMatrixTest`: las 20 rutas responden su código de éxito a los actores permitidos. Las pruebas de controladores de la Fase 3 conservan sus aserciones, ahora con identidad (T-SEC-020); solo el registro exige además la contraseña (§3.4) |
+| 2 | El registro crea el usuario, la contraseña con hash y el rol USER de forma atómica | ✅ | `AuthRegistrationIT`: hash `$2a$10$` que cumple `matches`, roles exactamente `[USER]`, y rollback de usuario, perfil, credencial y rol después de que los cuatro INSERT llegan a PostgreSQL |
+| 3 | Un login correcto emite un JWT válido y uno erróneo devuelve 401 | ✅ | `AuthLoginIT` (el `sub` es el id del usuario y la duración, 900 s; 401 idéntico para contraseña incorrecta e identificador inexistente) y `AuthControllerTest` |
+| 4 | `JwtService` valida la firma, el issuer, `sub`, `exp` y el algoritmo | ✅ | `JwtServiceTest`: firma alterada y de otra clave, otro emisor, sin `sub` o no positivo, caducado (también en el instante exacto de `exp`), `alg=none` y HS512 rechazados |
+| 5 | API sin sesión; Bearer obligatorio salvo las excepciones públicas explícitas | ✅ | `EndpointSecurityMatrixTest` (sin sesión ni cookies; ruta desconocida → 401) y `JwtAuthenticationWebMvcTest`; reglas de URL en `SecurityConfig` con `anyRequest().authenticated()` |
+| 6 | USER, STAFF y ADMIN tienen reglas probadas | ✅ | `EndpointSecurityMatrixTest` (22 operaciones × 4 actores) y `OwnershipSecurityIT` (16 pruebas con JWT reales) |
+| 7 | Ningún USER consulta, compra para o cancela tickets de terceros | ✅ | `OwnershipSecurityIT` (403 de `@PreAuthorize`, sin tickets nuevos y el ticket sigue `PAID`) y `SecurityEndToEndIT`, paso 5 |
+| 8 | Ni eventos borrador ni datos privados quedan expuestos por GET público | ✅ | `EventDraftVisibilityTest` (un borrador responde el mismo 404 que un código inexistente), `findByArtist` solo `PUBLISHED` (P2-D15) y `SecurityEndToEndIT`, paso 3. Las búsquedas de usuarios y de tickets exigen autenticación y propiedad |
+| 9 | `ErrorResponse` es consistente para 400, 401, 403, 404, 409 y 500 | ✅ | `GlobalExceptionHandlerTest` (400, 404, 409, 500), `SecurityExceptionHandlingTest` y `EndpointSecurityMatrixTest` (401 con `WWW-Authenticate: Bearer`, 403); las pruebas comprueban las 5 claves |
+| 10 | No hay secretos en el código, contraseñas sin hash ni datos sensibles expuestos | ✅ | La clave solo llega por entorno (`JwtConfigTest`: sin ella no arranca); la de pruebas es ficticia y está en `src/test`; `.env.example` no contiene secretos reales: la clave está vacía y solo trae los valores por defecto del emisor (`pulsepass-api`) y de la duración (`PT15M`); BCrypt en `AuthRegistrationIT`; `toString` sin secretos en las pruebas de los DTO y de `AccessToken`; en la salida de la suite, 0 contraseñas de prueba y 0 JWT |
+| 11 | Flyway se ejecuta con éxito sobre un esquema nuevo y sobre uno ya migrado | ✅ | `FlywayMigrationIT` (V1 a V4 desde una base vacía). `SecurityMigrationIT`, en un esquema aislado: migra hasta V3, inserta dos usuarios (uno activo y otro inactivo), ejecuta V4 y comprueba que se aplicaron V1 a V4, que cada usuario tiene exactamente el rol `USER` y que no hay ninguna credencial; otra prueba aplica V4 sobre una base nueva sin insertar roles ni credenciales |
+| 12 | Pasan las pruebas unitarias, las de MockMvc con filtros y las de integración | ✅ | `./mvnw clean test`: 664 pruebas, 0 fallos, 0 errores, `BUILD SUCCESS` (2026-11-18). Ninguna prueba web usa `addFilters = false` |
+| 13 | No se modifican reglas de negocio existentes sin requerimiento explícito | ✅ con matiz | El único servicio de negocio modificado es `EventServiceImpl.findByCode`, por el requisito explícito FR-SEC-EVT-02 (P4-D2). `TicketServiceImpl` y `UserServiceImpl` no cambiaron; BR-TICKET-004 sigue respondiendo 409 (P4-08-F) |
+| 14 | El README incluye variables, roles de prueba, endpoints y comandos de verificación | ✅ | [Variables de entorno](#variables-de-entorno), [Roles y usuarios de prueba](#roles-y-usuarios-de-prueba), [Endpoints de autenticación](#endpoints-de-autenticación), [Matriz de autorización](#matriz-de-autorización) y [Comandos de verificación](#comandos-de-verificación) |
+
+Comandos para reproducir parte de la evidencia, desde la raíz del repositorio. El primero no debe
+devolver nada; el segundo muestra los servicios de negocio que cambiaron en la Fase 4:
+
+```bash
+grep -rnE 'secret-base64: *[A-Za-z0-9+/=]{20,}' backend/src/main/resources
+```
+
+```bash
+git diff --stat 59faafc fase-4-seguridad -- backend/src/main/java/com/pulsepass/service/impl
+```
+
 ---
 
 # Decisiones clave
@@ -824,7 +1171,7 @@ grep -c 'public ResponseEntity<' backend/src/main/java/com/pulsepass/controller/
 ## Fase 1 — Persistencia
 
 * **Configuración:** `ddl-auto: validate` (PRD §13) y `open-in-view: false`. No se configura
-  ninguna conexión de base de datos (tampoco en las Fases 2 y 3): las pruebas la reciben de
+  ninguna conexión de base de datos (tampoco en las Fases 2, 3 y 4): las pruebas la reciben de
   Testcontainers. Sin secretos en el repositorio.
 * **Identificadores:** `BIGINT GENERATED BY DEFAULT AS IDENTITY`.
 * **Enums:** columnas `VARCHAR(20)` con `CHECK` y los valores exactos del PRD.
@@ -948,6 +1295,54 @@ Los PRD de Servicios, Controladores y Seguridad indican **JUnit 5**. El proyecto
 
 El prefijo `TKC-` evita la colisión con las decisiones `TK-*` de P2-13 y `TC-*` de P2-14.
 
+## Fase 4 — Seguridad
+
+| ID | Decisión | Origen |
+|---|---|---|
+| P4-D1 | Un recurso ajeno responde 403 y un ticket inexistente, 404; las búsquedas de usuario, el listado por email y la compra responden 403 aunque el objetivo no exista | Proyecto (base §11.1, §13) |
+| P4-D2 | Un evento no publicado pedido por un anónimo o un USER responde 404 con el mensaje de «no existe»; STAFF y ADMIN lo ven | PRD FR-SEC-EVT-02 |
+| P4-D3 | Solo `PUBLISHED` es público | PRD §11 |
+| P4-D4 | `GET /api/events/by-artist` sigue devolviendo solo `PUBLISHED` para todos (P2-D15) | Proyecto (base FR-SEC-EVT-06) |
+| P4-D5 | La propiedad se comprueba con `@PreAuthorize` en las interfaces de `UserService` y `TicketService`, a través de `AuthorizationService` | Proyecto (base §7.1) |
+| P4-D6 | Un Bearer inválido en una ruta pública responde 401; nunca autentica por accidente | PRD §14.3.5 |
+| P4-D7 | `anyRequest().authenticated()`: lo no declarado exige autenticación | PRD SEC-001 |
+| P4-D8 | Sin jerarquía de roles; la compra es solo para `ROLE_USER` | Proyecto (base §11) |
+| P4-D9 | Mensajes «Authentication is required», «Invalid credentials» y «Access denied» | Proyecto (base §13) |
+| P4-D10 | `password_hash VARCHAR(100)` y BCrypt de fuerza 10; sin `password_changed_at` | Proyecto (base §9.1) |
+| P4-D11 | V4 da `ROLE_USER` a los usuarios existentes, sin credenciales; activación manual documentada | PRD §9.2 |
+| P4-D12 | STAFF y ADMIN solo en las pruebas | PRD §9.2, NFR-SEC-009 |
+| P4-D13 | El login busca primero por username exacto y después por email sin distinguir mayúsculas | Proyecto (base FR-SEC-AUTH-002) |
+| P4-D14 | Contraseña: `@NotBlank`, al menos 12 caracteres y 72 bytes UTF-8 como máximo | PRD §9.3 |
+| P4-D15 | `AuthenticatedUserResponse(id, username, email, roles)` | Proyecto (base FR-SEC-AUTH-010) |
+| P4-D16 | `UserController.register` llama a `AuthService.register`, que crea usuario, credencial y `ROLE_USER` en una transacción | PRD §9.3 |
+| P4-D17 | QT-001 se actualiza a V1–V4 | Proyecto |
+| P4-D18 | Clave de pruebas en `src/test/resources/config/application.yml` y plantilla `.env.example` | Proyecto (base §14.2) |
+| P4-D19 | `GlobalExceptionHandler` distingue 401 de 403 con `AuthenticationTrustResolver` | Proyecto (base §13) |
+| P4-D20 | `spring-boot-starter-security-test` en lugar de `spring-security-test` ([DEV-002](#desviación-dev-002-spring-boot-starter-security-test)) | Desviación |
+| P4-D21 | La propiedad se prueba de forma unitaria y de integración | Proyecto (base §17) |
+| P4-03 | JWT HS256 con el registro de algoritmos limitado; `exp`, `iat`, `sub` positivo y `jti` obligatorios; margen de reloj 0; `iat` futuro rechazado; emisión truncada a segundos; sin roles en el token | Proyecto (base §12) |
+| P4-04 | Sin CSRF, formLogin, httpBasic, logout ni requestCache; 401 con `WWW-Authenticate: Bearer`; `ErrorResponseFactory` como única fuente de los cuerpos de error; `RequestIdFilter` fuera de la cadena, con máxima prioridad; sin el usuario en memoria de Spring Boot | Proyecto (base §14.3) |
+| P4-05 | Exactamente una cabecera Bearer bien formada; el filtro no es un bean y carga en cada petición el usuario, su estado y sus roles (2 consultas) | Proyecto (base §14.3, NFR-SEC-003) |
+| P4-06 | `@MaxUtf8Bytes(72)` propio; `toString` de los request sin la contraseña; el hash se calcula después de las reglas de negocio; los campos JSON desconocidos (como `role`) se ignoran | Proyecto |
+| P4-07 | `AuthenticationManager` explícito (`ProviderManager` + `DaoAuthenticationProvider` con los valores por defecto); el login sin mínimo de 12 caracteres y con máximo de 72 bytes (400); `roles` sin prefijo y ordenados; logs de login sin identificador; la matriz pasa a 22 operaciones | Proyecto |
+| P4-08 | `@EnableMethodSecurity` en `MethodSecurityConfig`, separada para que `@WebMvcTest` no la cargue; bean `authz`; se reutilizan las consultas existentes de los repositorios; STAFF no cancela tickets ajenos; se mantiene el 409 de BR-TICKET-004 | Proyecto (base §11) |
+| P4-10 | Escenario de §23 en el orden 1, 2, 6, 7, 3, 4, 5, 8, 9, 10; CMF-2026 con fecha 2030-12-12 (DATO DE PRUEBA) | Proyecto (base §23) |
+| P4-11 | Duración del token parametrizable con `PULSEPASS_JWT_ACCESS_TOKEN_TTL`; con el emisor y la clave, cubre la parte de configuración del JWT de NFR-SEC-008. CORS sigue aplazado | PRD NFR-SEC-008 (parcial) |
+
+Las decisiones de cada tarea con su letra (por ejemplo, P4-06-A) se citan en el Javadoc del código.
+
+### Desviación DEV-002: `spring-boot-starter-security-test`
+
+El PRD (§14.1) indica `spring-security-test`. El proyecto usa `spring-boot-starter-security-test`,
+que lo incluye.
+
+* **Motivo:** en Spring Boot 4, `@WebMvcTest` solo aplica la configuración de seguridad con el
+  módulo `spring-boot-security-test`, que llega a través de ese starter. Con solo
+  `spring-security-test`, las pruebas web no tendrían la cadena de filtros real.
+* **Impacto:** ninguno en la forma de escribir las pruebas: las utilidades de
+  `spring-security-test` (`SecurityMockMvcRequestPostProcessors`, `@WithSecurityContext`) siguen
+  disponibles.
+
 ---
 
 # Limitaciones conocidas
@@ -1000,14 +1395,17 @@ Implementado en esta fase, con estas limitaciones conocidas:
   Spring; su cuerpo es siempre un `ErrorResponse` (ver el punto 18 del DoD).
 * **Errores fuera de Spring MVC:** los errores que ocurren antes de `DispatcherServlet` (por
   ejemplo, en un filtro de servlet) no pasan por `GlobalExceptionHandler` y usan el formato de
-  `/error` de Spring Boot. Hoy no hay filtros propios.
+  `/error` de Spring Boot. Hoy no hay filtros propios. (Desde la Fase 4 hay filtros propios; los 401
+  y 403 de la cadena de seguridad usan `ErrorResponse` a través de `RestAuthenticationEntryPoint` y
+  `RestAccessDeniedHandler`.)
 * **405 y 415:** se responden con su estado real, aunque no están en la lista de códigos de §16
   (P3-D3).
 * **Códigos que coinciden con una ruta literal:** un venue con código `active`, un evento con
   código `published` o `by-artist`, o un ticket con código `by-user` no se podrían consultar por su
   ruta con variable. Los formatos reales (`VEN-…`, `CMF-…`, `TKT-…`) no chocan.
-* **Campos JSON desconocidos:** se ignoran. Por ejemplo, un `"active": false` o un `"password"` en
-  el registro no tienen efecto, porque el record no tiene esos campos.
+* **Campos JSON desconocidos:** se ignoran. Por ejemplo, un `"active": false` en el registro no
+  tiene efecto, porque el record no tiene ese campo. (Desde la Fase 4, `password` sí es un campo
+  del registro, y un `"role"` se ignora igual.)
 * **Sin 404 en dos listas:** `GET /api/tickets/by-user` y `GET /api/events/{eventCode}/tickets/paid`
   responden `[]` si el usuario o el evento no existen (TK-7), así que un cliente no distingue «sin
   tickets» de «no existe».
@@ -1017,12 +1415,49 @@ Implementado en esta fase, con estas limitaciones conocidas:
 * **La aplicación no arranca sola:** no hay datasource configurado (decisión de la Fase 1: sin
   secretos en el repositorio). Las pruebas reciben la base de datos de Testcontainers; ejecutar la
   API manualmente, por ejemplo con Postman, requiere configurar la conexión, y corresponde a una
-  fase posterior.
+  fase posterior. (Desde la Fase 4 se puede arrancar en local con la base de datos de
+  Testcontainers: ver [Comandos de verificación](#comandos-de-verificación).)
 
 Queda para fases posteriores:
 
 * **Seguridad (Fase 4):** en esta fase todos los endpoints son públicos (R-CTRL-003). No hay
   autenticación, roles ni control de propiedad: cualquiera puede consultar, cancelar o usar
   cualquier ticket, y `GET /api/events/{eventCode}` también muestra eventos en `DRAFT`.
+  **Resuelto en la Fase 4** (ver [Fase 4 — Seguridad](#fase-4--seguridad)).
 * **Fuera del alcance del PRD de Controladores (§27):** OpenAPI/Swagger, paginación, CORS avanzado,
   versionado de la API (`/api/v1`) y pruebas E2E.
+
+## Fase 4 — Seguridad
+
+* **STAFF con alcance global (§11.1):** el dominio no asigna personal a eventos, así que un STAFF
+  puede consultar cualquier ticket y marcar el uso de cualquiera. En producción habría que
+  limitarlo a sus eventos.
+* **Sin revocación inmediata ni límite de intentos:** no hay lista de tokens revocados; un token
+  firmado sigue siendo válido hasta que caduca (15 minutos por defecto). El estado y los roles se
+  leen de la base de datos en cada petición, con dos efectos distintos:
+  * **Desactivar un usuario** impide autenticar sus siguientes peticiones: el token deja de servir
+    (401), aunque no haya caducado.
+  * **Retirar un rol** no invalida el token: el usuario sigue autenticado, pero sus permisos
+    efectivos se actualizan en la siguiente petición (por ejemplo, 403 donde antes tenía acceso).
+
+  No hay bloqueo por intentos de login fallidos (§16.1).
+* **CORS:** aplazado; no hay configuración de orígenes.
+* **HTTPS (NFR-SEC-007):** depende del despliegue; la aplicación no fuerza HTTPS.
+* **La compra revela borradores (P4-08-F):** comprar para un evento no publicado responde 409
+  «Tickets can only be purchased for PUBLISHED events», como exigen BR-TICKET-004 y los PRD de
+  Servicios, Controladores y E2E, mientras que un código inexistente responde 404. Un USER
+  autenticado puede así saber que existe un evento no publicado (no ve sus datos).
+* **403 frente a 404 en los tickets (P4-D1):** un ticket ajeno responde 403 y uno inexistente, 404,
+  así que se puede saber si existe un código de ticket. Los códigos son aleatorios (P2-D3).
+* **404 sin request ID en el despacho de errores:** un 404 generado durante el despacho interno de
+  `/error` no lleva el request ID en el log.
+* **Consultas extra del perfil:** `User.profile` es `EAGER` en el lado inverso de la relación 1:1,
+  así que el login y las comprobaciones de propiedad por email o username hacen una consulta más
+  para cargar el perfil (4 consultas por login; 4 en una búsqueda de usuario denegada).
+* **Avisos repetidos de Spring Security:** el INFO «Global AuthenticationManager configured…»
+  aparece una vez por contexto aunque el login use el `AuthenticationManager` explícito, y un login
+  fallido deja dos líneas de log (ver [Avisos esperados](#avisos-esperados-en-la-salida)).
+* **Cambio y recuperación de contraseña:** fuera del alcance del PRD (§5.2); la activación de los
+  usuarios anteriores es manual.
+* **Heredadas:** siguen las de las fases anteriores (concurrencia de la compra §53, `Ticket` sin
+  `@Version`, email con distinto uso de mayúsculas).
