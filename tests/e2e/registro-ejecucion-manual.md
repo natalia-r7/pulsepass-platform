@@ -6,16 +6,18 @@ Bitácora de la ejecución oficial con el cliente Bruno (desviación D-01, `test
 
 | Campo | Valor |
 |---|---|
-| Fecha | pendiente |
-| Ejecutor | pendiente |
-| Commit del repositorio | pendiente |
-| `runId` | pendiente |
-| Cliente de ejecución (Bruno, versión y modo local sin cuenta ni sincronización, A-01) | pendiente |
-| PostgreSQL (versión observada en A-09) | pendiente |
-| Java | pendiente |
+| Fecha | 2026-11-19 |
+| Ejecutor | Natalia Ramírez |
+| Commit del repositorio | `edc12ff`; la bitácora tiene cambios sin commit correspondientes a A-01 y A-02 |
+| `runId` | `r20261119a` |
+| Cliente de ejecución (Bruno, versión y modo local sin cuenta ni sincronización, A-01) | Bruno 4.3.0, ejecución local sin cuenta |
+| PostgreSQL (versión observada en A-09) | 17.12 |
+| Java | 21.0.12.1, Oracle Corporation |
+| Maven | 3.10.0 |
+| Sistema operativo | macOS 26.5.2, aarch64 |
 | Restauración R-B aplicada (A-05) | pendiente |
-| VX creado (`inactive_venue=on`, A-11) | pendiente |
-| Estado de `pulsepass-db` antes (A-04) y después (A-25) | pendiente |
+| VX creado (`inactive_venue=on`, A-11) | Sí: `E2E-r20261119a-VX` (capacidad 50, inactivo) |
+| Estado de `pulsepass-db` antes (A-04) y después (A-25) | Idéntico antes y después: `exited`, ExitCode 0, parado el `2026-11-14T00:16:23.404857761Z`, volumen `7a78a66065a7428c826b72733f5f9e0072b919e02259b8d29f446307cb5ab837` |
 
 ## Criterios de resultado
 
@@ -30,19 +32,19 @@ Las filas de tipo **Reenvío** y **Condicional** son evidencia del caso que veri
 
 | Orden | Acción | Descripción (ver checklist) | Hora | Resultado | Observación |
 |---|---|---|---|---|---|
-| 1 | A-01 | Bruno solo en local, sin cuenta ni sincronización (si no, detenerse: BLOCKED) | pendiente | NOT RUN | pendiente |
-| 2 | A-02 | Importar en Bruno (fuera del repositorio) y comprobar la importación | pendiente | NOT RUN | pendiente |
-| 3 | A-03 | Completar la cabecera de la bitácora | pendiente | NOT RUN | pendiente |
-| 4 | A-04 | Anotar el estado de `pulsepass-db` (solo `docker inspect`) | pendiente | NOT RUN | pendiente |
-| 5 | A-05 | R-B: restaurar solo `pulsepass-e2e-db` y `pulsepass-e2e-data` | pendiente | NOT RUN | pendiente |
-| 6 | A-06 | Generar los secretos de la sesión (solo en la terminal) | pendiente | NOT RUN | pendiente |
-| 7 | A-07 | Crear el volumen y el contenedor E2E | pendiente | NOT RUN | pendiente |
-| 8 | A-08 | Arrancar la aplicación | pendiente | NOT RUN | pendiente |
-| 9 | A-09 | Comprobaciones previas (Flyway, base y versión) | pendiente | NOT RUN | pendiente |
-| 10 | A-10 | Elegir el `runId` y rellenar los valores derivados | pendiente | NOT RUN | pendiente |
-| 11 | A-11 | Seed `venues` (anotar si se usa `inactive_venue=on`) | pendiente | NOT RUN | pendiente |
-| 12 | A-12 | Marcar las 20 variables secretas en Bruno y verificar el cifrado local | pendiente | NOT RUN | pendiente |
-| 27 | A-13 | SQL `promote` (paso 7) | pendiente | NOT RUN | pendiente |
+| 1 | A-01 | Bruno solo en local, sin cuenta ni sincronización (si no, detenerse: BLOCKED) | pendiente | PASS | Bruno 4.3.0, modo local y sin cuenta (sin sesión, avatar ni correo). Sin sincronización con la nube, según la documentación oficial de Bruno. Workspace local: `~/Library/Application Support/bruno/default-workspace`. Colección local: `~/Documents/bruno/PulsePass — E2E Manual/`, fuera del repositorio. Sin repositorio Git en la colección ni en el workspace (`git rev-parse`). Cifrado de secretos: pendiente de verificar en A-12. |
+| 2 | A-02 | Importar en Bruno (fuera del repositorio) y comprobar la importación | pendiente | PASS | Colección importada desde `tests/e2e/postman/PulsePass-Manual-E2E.postman_collection.json` en `~/Documents/bruno/PulsePass — E2E Manual/` (fuera del repositorio; el workspace solo enumera rutas en `~/Documents/bruno/`, nunca `tests/e2e/`). Comparación de solo lectura con la colección Postman v2.1 original: 13/13 PASS; 10 carpetas en orden y 124 peticiones, sin faltantes, duplicadas ni sobrantes; método, URL, query, autenticación (76 Bearer con el mismo token, 48 sin autenticación y sin autenticación heredable en colección ni carpetas), cabeceras, 45 cuerpos idénticos (incluido el literal truncado de TC-HTTP-003), descripciones idénticas y sin scripts, tests ni assertions. Ambiente `PulsePass-local` importado y seleccionado: 53 variables (33 normales y 20 secretas); valor solo en `baseUrl`, `expectedIssuer`, `expectedTokenTtlSeconds` y `expectedForeignResourceStatus`; 20 secretas sin valores. `git status` limpio en HEAD `edc12ff` tras la importación; después solo cambia esta bitácora, y la colección y el ambiente originales siguen sin cambios. |
+| 3 | A-03 | Completar la cabecera de la bitácora | pendiente | PASS | Cabecera completada con fecha (2026-11-19), ejecutor, commit (`edc12ff`, con A-01 y A-02 registrados sin commit), cliente (Bruno 4.3.0, local sin cuenta) y versiones (Java 21.0.12.1 de Oracle Corporation, Maven 3.10.0, macOS 26.5.2 aarch64), según lo comprobado en la terminal. `runId`, PostgreSQL, R-B, VX y estado de `pulsepass-db` quedan pendientes para A-10, A-09, A-05, A-11, A-04 y A-25. |
+| 4 | A-04 | Anotar el estado de `pulsepass-db` (solo `docker inspect`) | pendiente | PASS | `docker inspect pulsepass-db` (solo lectura): estado `exited`, ExitCode 0, parado el `2026-11-14T00:16:23.404857761Z`, imagen `postgres:16`, volumen anónimo `7a78a66065a7428c826b72733f5f9e0072b919e02259b8d29f446307cb5ab837`, usado solo por `pulsepass-db`. Coincide con la línea base de P5-02. Esta información sirve de referencia para comparar el estado de `pulsepass-db` en A-25. |
+| 5 | A-05 | R-B: restaurar solo `pulsepass-e2e-db` y `pulsepass-e2e-data` | pendiente | PASS | Restauración R-B (`tests/e2e/fixtures/README.md` §9, pasos 1–5). Aplicación detenida antes (puerto 8080 libre). Validación previa: contenedor `/pulsepass-e2e-db` (Id `462315ea2185`, `postgres:17`) con etiqueta `com.pulsepass.purpose=e2e`, `POSTGRES_DB=pulsepass_e2e` y montaje `pulsepass-e2e-data`; volumen `pulsepass-e2e-data` con etiqueta `e2e`, usado solo por ese contenedor. Ejecutado, en este orden: `docker rm -f pulsepass-e2e-db` (sin `-v`) y `docker volume rm pulsepass-e2e-data`. Después, ninguno de los dos existe; `pulsepass-db` sigue idéntico (`exited`, ExitCode 0, parado el `2026-11-14T00:16:23.404857761Z`) y su volumen `7a78a66065a7428c826b72733f5f9e0072b919e02259b8d29f446307cb5ab837` sigue existiendo. Sin otros recursos afectados. |
+| 6 | A-06 | Generar los secretos de la sesión (solo en la terminal) | pendiente | PASS | Secretos de la sesión generados en la terminal de la aplicación (`backend/`), según `tests/e2e/fixtures/README.md` §3: contraseña de la base de 32 caracteres hexadecimales y clave JWT de 32 bytes en base64, comprobadas sin mostrar su valor. No se han escrito en archivos, en la bitácora ni en Bruno; la terminal sigue abierta para A-07 y A-08. |
+| 7 | A-07 | Crear el volumen y el contenedor E2E | pendiente | PASS | Creados desde la terminal de la aplicación (`tests/e2e/fixtures/README.md` §4): volumen `pulsepass-e2e-data` (etiqueta `com.pulsepass.purpose=e2e`, driver `local`) y contenedor `pulsepass-e2e-db` (Id `1896237c33a0`, `postgres:17`, PostgreSQL 17.12) en ejecución, con etiqueta `e2e`, `POSTGRES_DB=pulsepass_e2e`, `POSTGRES_USER=pulsepass_e2e`, puerto `127.0.0.1:55432 → 5432` y el volumen montado en `/var/lib/postgresql/data`, usado solo por ese contenedor. `pg_isready`: accepting connections; el log muestra la inicialización completa. Contraseña definida, no mostrada. `pulsepass-db` sin cambios. |
+| 8 | A-08 | Arrancar la aplicación | pendiente | PASS | `./mvnw spring-boot:run` desde `backend/`, en la terminal de A-06, con `SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:55432/pulsepass_e2e` y las variables de la sesión. Log: `Tomcat started on port 8080 (http)` y `Started PulsepassApplication in 4.218 seconds`; JPA y AuthenticationManager inicializados. Comprobado: PID 35396 (`com.pulsepass.PulsepassApplication`) escucha en 8080 y mantiene 10 conexiones a `127.0.0.1:55432`; `pg_stat_activity` muestra 10 conexiones de «PostgreSQL JDBC Driver» a `pulsepass_e2e`. |
+| 9 | A-09 | Comprobaciones previas (Flyway, base y versión) | pendiente | PASS | Verificación directa en la base E2E (solo lectura): PostgreSQL 17.12; `current_database()` = `pulsepass_e2e`; `current_user` = `pulsepass_e2e`; 10 conexiones JDBC de PulsePass (PID 35396) a `pulsepass_e2e` en `127.0.0.1:55432`; `flyway_schema_history` con V1, V2, V3 y V4 en `success = true`. No se adjuntaron las dos líneas literales del log de Flyway (`Database: …` y `Successfully applied 4 migrations`); en su lugar se usó esta verificación directa equivalente, aprobada en la revisión. |
+| 10 | A-10 | Elegir el `runId` y rellenar los valores derivados | pendiente | PASS | `runId` = `r20261119a`. Comprobado en el archivo del ambiente de Bruno (solo lectura): 53 variables; las 22 de A-10 con los valores acordados (`runId`, emails `{actor}.r20261119a@example.test` y usernames `{actor}-r20261119a` de los 7 actores, `E2E-r20261119a-V0`/`-V1` y `E2E-r20261119a-MAIN`/`-DRAFT`/`-SOLD`/`-DENY`); las 4 de configuración sin cambios; `artistId`, `artistStageName` y los 5 códigos de ticket vacíos; las 20 secretas marcadas como secretas y sin valores. Sin espacios sobrantes. |
+| 11 | A-11 | Seed `venues` (anotar si se usa `inactive_venue=on`) | pendiente | PASS | Seed `venues` con `run_id=r20261119a` e `inactive_venue=on`, ejecutado desde la raíz del repositorio; terminó con `COMMIT`. Comprobado en la base (solo lectura): `E2E-r20261119a-V0` (capacidad 100, activo), `E2E-r20261119a-V1` (capacidad 1, activo) y `E2E-r20261119a-VX` (capacidad 50, inactivo), los tres en Bogotá; 3 locales en total, 0 usuarios y 0 eventos. VX creado: TC-BIZ-015d podrá ejecutarse. |
+| 12 | A-12 | Marcar las 20 variables secretas en Bruno y verificar el cifrado local | pendiente | PASS | 20 variables marcadas como secretas en el ambiente `PulsePass-local`; introducidos solo `staffIdentifier`, `adminIdentifier` y las 7 contraseñas; los 11 tokens, vacíos. Comprobado sin mostrar valores: el archivo `environments/PulsePass-local.yml` tiene las 20 entradas `secret: true` sin ninguna línea `value`; desde la importación solo ha cambiado ese archivo en la colección. El almacén local de Bruno (`~/Library/Application Support/bruno/secrets.json`) contiene las 20 variables: los 9 valores con formato cifrado (prefijo `$00:`, ninguno en texto plano) y los 11 tokens vacíos. |
+| 27 | A-13 | SQL `promote` (paso 7) | pendiente | PASS | Paso `promote` del seed con `run_id=r20261119a`, ejecutado desde la raíz del repositorio: `BEGIN`, `DO` y `COMMIT`, sin errores. Roles resultantes (comprobados también en la base, solo lectura): admin → solo ADMIN; staff → solo STAFF; usera, userb y roleinjection → USER. Los locales V0, V1 y VX sin cambios. |
 | 48 | A-14 | Preparar `tamperedToken` (TC-AUTH-009) | pendiente | NOT RUN | pendiente |
 | 55 | A-15 | SQL `deactivate` (paso 11) | pendiente | NOT RUN | pendiente |
 | 145 | A-16 | SQL `revoke-staff` (paso 36) | pendiente | NOT RUN | pendiente |
@@ -54,8 +56,8 @@ Las filas de tipo **Reenvío** y **Condicional** son evidencia del caso que veri
 | 164 | A-22 | Reinicio l (5 de 6): emisor `pulsepass-e2e-alt` | pendiente | NOT RUN | pendiente |
 | 168 | A-23 | Reinicio o (6 de 6): configuración normal | pendiente | NOT RUN | pendiente |
 | 169 | A-24 | Vaciar los tres tokens de prueba | pendiente | NOT RUN | pendiente |
-| 170 | A-25 | Comprobar que `pulsepass-db` no cambió | pendiente | NOT RUN | pendiente |
-| 171 | A-26 | Detener la aplicación y la base E2E (sin borrarla) | pendiente | NOT RUN | pendiente |
+| 170 | A-25 | Comprobar que `pulsepass-db` no cambió | pendiente | PASS | `docker inspect pulsepass-db` (solo lectura) tras detener la aplicación: `exited`, ExitCode 0, parado el `2026-11-14T00:16:23.404857761Z`, volumen `7a78a66065a7428c826b72733f5f9e0072b919e02259b8d29f446307cb5ab837`. Idéntico a A-04. |
+| 171 | A-26 | Detener la aplicación y la base E2E (sin borrarla) | pendiente | PASS | Aplicación detenida por la ejecutora (señal TERM al PID 35396; puerto 8080 libre, sin procesos `PulsepassApplication`). `pulsepass-e2e-db` detenido con `docker stop` tras verificar su identidad (`/pulsepass-e2e-db`, etiqueta `e2e`, volumen `pulsepass-e2e-data`); el volumen se conserva. Acción adelantada por la ejecución parcial (D-02). |
 | 172 | A-27 | Sin secretos en archivos versionables | pendiente | NOT RUN | pendiente |
 | 173 | A-28 | Consolidar la bitácora | pendiente | NOT RUN | pendiente |
 
@@ -63,29 +65,29 @@ Las filas de tipo **Reenvío** y **Condicional** son evidencia del caso que veri
 
 | # | Tipo | Caso | Paso | Actor | Método y ruta | Datos no sensibles | HTTP esperado | Qué comprobar | Fecha y hora | HTTP observado | JSON / estado observado | Resultado | Evidencia / observación |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 13 | Caso | `CONN-01` | E0, paso 2 | ANONYMOUS | `GET /api/venues/active` | pendiente | 200 | incluye V0 y V1; nunca VX, que es inactivo | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 14 | Caso | `E2E-VEN-02` | E1, paso 3 | ANONYMOUS | `GET /api/venues/active` | pendiente | 200 | solo venues activos; V0 y V1 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 15 | Caso | `E2E-VEN-01` | E1, paso 3 | ANONYMOUS | `GET /api/venues/{{venueActiveCode}}` | pendiente | 200 | V0 con `capacity = 100` | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 16 | Caso | `E2E-ART-03` | E1, paso 3 | ANONYMOUS | `GET /api/artists/active` | pendiente | 200 | solo artistas activos | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 17 | Caso | `E2E-ART-01` | E1, paso 3 | ANONYMOUS | `GET /api/artists/{{artistId}}` | pendiente | 200 | mismo artista | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 18 | Caso | `E2E-ART-02` | E1, paso 3 | ANONYMOUS | `GET /api/artists/by-stage-name?stageName={{artistStageName}}` | pendiente | 200 | mismo `id` que E2E-ART-01 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 19 | Caso | `E2E-USR-01` | E2, paso 4 | ANONYMOUS | `POST /api/users` | pendiente | 201 | 201; sin JWT | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 20 | Caso | `E2E-USR-01-B` | E2, paso 4 | ANONYMOUS | `POST /api/users` | pendiente | 201 | 201 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 21 | Caso | `E2E-USR-01-STAFF` | E2, paso 4 | ANONYMOUS | `POST /api/users` | pendiente | 201 | 201 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 22 | Caso | `E2E-USR-01-ADMIN` | E2, paso 4 | ANONYMOUS | `POST /api/users` | pendiente | 201 | 201 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
+| 13 | Caso | `CONN-01` | E0, paso 2 | ANONYMOUS | `GET /api/venues/active` | `runId` r20261119a | 200 | incluye V0 y V1; nunca VX, que es inactivo | 2026-11-19, ~11:35 (Colombia) | 200 | Lista JSON con 2 locales: `E2E-r20261119a-V1` (capacidad 1, activo) y `E2E-r20261119a-V0` (capacidad 100, activo); `E2E-r20261119a-VX` no aparece | PASS | Enviado a mano en Bruno; duración 1,64 s. |
+| 14 | Caso | `E2E-VEN-02` | E1, paso 3 | ANONYMOUS | `GET /api/venues/active` | `runId` r20261119a | 200 | solo venues activos; V0 y V1 | 2026-11-19, ~11:37 (Colombia) | 200 | `E2E-r20261119a-V0` (capacidad 100, activo) y `E2E-r20261119a-V1` (capacidad 1, activo); VX no aparece; ambos con los 7 campos de `VenueResponse` (id, code, name, city, address, capacity, active) | PASS | Enviado a mano en Bruno; duración 765 ms. |
+| 15 | Caso | `E2E-VEN-01` | E1, paso 3 | ANONYMOUS | `GET /api/venues/{{venueActiveCode}}` | `venueActiveCode` = `E2E-r20261119a-V0` | 200 | V0 con `capacity = 100` | 2026-11-19, ~11:39 (Colombia) | 200 | Un único objeto JSON: `code` = `E2E-r20261119a-V0`, `capacity` = 100, `active` = true; los 7 campos de `VenueResponse` presentes | PASS | Enviado a mano en Bruno; duración 606 ms. |
+| 16 | Caso | `E2E-ART-03` | E1, paso 3 | ANONYMOUS | `GET /api/artists/active` | `artistId` = 1, `artistStageName` = Solar Beat | 200 | solo artistas activos | 2026-11-19, ~11:44–11:47 (Colombia) | 200 | Lista JSON con 5 artistas, todos con `active` = true y los 5 campos de `ArtistResponse` (id, stageName, country, genre, active): Caribbean Sound (3), Digital Pulse (5), Neon Waves (2), Ocean Drive (4) y Solar Beat (1) | PASS | Enviado a mano en Bruno; duración 453 ms. Copiados al ambiente `artistId` = 1 y `artistStageName` = Solar Beat (comprobado en el archivo del ambiente). |
+| 17 | Caso | `E2E-ART-01` | E1, paso 3 | ANONYMOUS | `GET /api/artists/{{artistId}}` | `artistId` = 1 | 200 | mismo artista | 2026-11-19, ~11:49 (Colombia) | 200 | Un único objeto JSON: `id` = 1, `stageName` = Solar Beat, `active` = true, `country` = null, `genre` = null; los 5 campos de `ArtistResponse` presentes | PASS | Enviado a mano en Bruno; duración 738 ms. Mismo artista que en E2E-ART-03. |
+| 18 | Caso | `E2E-ART-02` | E1, paso 3 | ANONYMOUS | `GET /api/artists/by-stage-name?stageName={{artistStageName}}` | `artistStageName` = Solar Beat | 200 | mismo `id` que E2E-ART-01 | 2026-11-19, ~11:51 (Colombia) | 200 | Un único objeto JSON: `id` = 1, `stageName` = Solar Beat, `active` = true, `country` = null, `genre` = null; coincide con E2E-ART-01 | PASS | Enviado a mano en Bruno; duración 328 ms. |
+| 19 | Caso | `E2E-USR-01` | E2, paso 4 | ANONYMOUS | `POST /api/users` | USER_A: `usera-r20261119a`, `usera.r20261119a@example.test` | 201 | 201; sin JWT | 2026-11-19, ~11:53 (Colombia) | 201 | `UserResponse`: `id` = 1, `username` = usera-r20261119a, `email` = usera.r20261119a@example.test, `active` = true, Andrea Pruebas, `birthDate` = 1998-05-15; sin contraseña, hash ni token | PASS | Enviado a mano en Bruno; duración 1,11 s. `id` de USER_A = 1 (referencia para E2E-AUTH-02 y TC-AUTH-003). |
+| 20 | Caso | `E2E-USR-01-B` | E2, paso 4 | ANONYMOUS | `POST /api/users` | USER_B: `userb-r20261119a`, `userb.r20261119a@example.test` | 201 | 201 | 2026-11-19, ~11:56 (Colombia) | 201 | `UserResponse`: `id` = 2 (distinto del de USER_A), `username` = userb-r20261119a, `email` = userb.r20261119a@example.test, Bruno Pruebas, `active` = true; sin contraseña, hash ni token | PASS | Enviado a mano en Bruno; duración 291 ms. `id` de USER_B = 2. |
+| 21 | Caso | `E2E-USR-01-STAFF` | E2, paso 4 | ANONYMOUS | `POST /api/users` | STAFF: `staff-r20261119a`, `staff.r20261119a@example.test` | 201 | 201 | 2026-11-19, ~11:59 (Colombia) | 201 | `UserResponse`: `id` = 3, `username` = staff-r20261119a, `email` = staff.r20261119a@example.test, Sofía Staff, `birthDate` = 1998-05-15, `active` = true; sin contraseña, hash ni token | PASS | Enviado a mano en Bruno; duración 541 ms. `id` de STAFF = 3. Sigue con el rol USER hasta el paso SQL `promote` (A-13). |
+| 22 | Caso | `E2E-USR-01-ADMIN` | E2, paso 4 | ANONYMOUS | `POST /api/users` | ADMIN: `admin-r20261119a`, `admin.r20261119a@example.test` | 201 | 201 | 2026-11-19, ~12:28 (Colombia) | 201 | `UserResponse`: `id` = 4, `username` = admin-r20261119a, `email` = admin.r20261119a@example.test, Adrián Admin, `birthDate` = 1998-05-15, `active` = true; sin contraseña, hash ni token | PASS | Enviado a mano en Bruno; duración 938 ms. `id` de ADMIN = 4. Sigue con el rol USER hasta el paso SQL `promote` (A-13). |
 | 23 | Caso | `E2E-USR-01-INACTIVE` | E2, paso 4 | ANONYMOUS | `POST /api/users` | pendiente | 201 | 201 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 24 | Caso | `TC-SEC-016` | E2, paso 5 | ANONYMOUS | `POST /api/users` | pendiente | 201 | 201; el rol se comprueba en E2E-AUTH-02-ROLEINJ | pendiente | pendiente | pendiente | NOT RUN | pendiente |
+| 24 | Caso | `TC-SEC-016` | E2, paso 5 | ANONYMOUS | `POST /api/users` | ROLE_INJECTION: `roleinjection-r20261119a`, `roleinjection.r20261119a@example.test`; cuerpo con `"role": "ADMIN"` a propósito | 201 | 201; el rol se comprueba en E2E-AUTH-02-ROLEINJ | 2026-11-19, ~12:31 (Colombia) | 201 | `UserResponse`: `id` = 5, `username` = roleinjection-r20261119a, `email` = roleinjection.r20261119a@example.test, Rosa Inyeccion, `birthDate` = 1998-05-15, `active` = true; sin rol, contraseña, hash ni token | NOT RUN | Enviado a mano en Bruno; duración 284 ms. Pendiente de E2E-AUTH-02-ROLEINJ (`roles = ["USER"]`) para el resultado definitivo. |
 | 25 | Caso | `TC-BIZ-006a` | E2, paso 6 | ANONYMOUS | `POST /api/users` | pendiente | 409 | 409; anotar el mensaje observado | pendiente | pendiente | pendiente | NOT RUN | pendiente |
 | 26 | Caso | `TC-BIZ-006b` | E2, paso 6 | ANONYMOUS | `POST /api/users` | pendiente | 409 | 409; anotar el mensaje observado | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 28 | Caso | `E2E-AUTH-01` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | pendiente | 200 | 200; `expiresIn = 900` | pendiente | pendiente | pendiente | NOT RUN | pendiente |
+| 28 | Caso | `E2E-AUTH-01` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | USER_A por username (`usera-r20261119a`) | 200 | 200; `expiresIn = 900` | 2026-11-19, ~12:41 (Colombia) | 200 | `AuthResponse`: `accessToken` presente y no vacío, `tokenType` = Bearer, `expiresIn` = 900 | PASS | Enviado a mano en Bruno; duración 1,28 s. Token copiado a la variable secreta `userAToken` (comprobado en el almacén de Bruno con formato cifrado, sin mostrar su valor; no aparece en los archivos de la colección). |
 | 29 | Reenvío | `E2E-AUTH-02` · control previo de TC-AUTH-003 | E2, paso 8 | USER_A | `GET /api/auth/me` | pendiente | 200 | 200; anotar el `id` (= el de E2E-USR-01) | pendiente | pendiente | pendiente | NOT RUN | pendiente |
 | 30 | Caso | `TC-AUTH-003` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | pendiente | 200 | 200 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 31 | Caso | `E2E-AUTH-01-B` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | pendiente | 200 | 200 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 32 | Caso | `E2E-AUTH-01-STAFF` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | pendiente | 200 | 200 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 33 | Caso | `E2E-AUTH-01-ADMIN` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | pendiente | 200 | 200 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 34 | Caso | `E2E-AUTH-01-ROLEINJ` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | pendiente | 200 | 200 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
+| 31 | Caso | `E2E-AUTH-01-B` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | USER_B por username (`userb-r20261119a`) | 200 | 200 | 2026-11-19, hora no informada | 200 | `AuthResponse`: `accessToken` presente y no vacío, `tokenType` = Bearer, `expiresIn` = 900 | PASS | Enviado a mano en Bruno, una sola vez; duración no informada. Token copiado a la variable secreta `userBToken` (comprobado en el almacén de Bruno con formato cifrado, sin mostrar su valor). |
+| 32 | Caso | `E2E-AUTH-01-STAFF` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | STAFF por `staffIdentifier` (email) | 200 | 200 | 2026-11-19, hora no informada | 200 | `AuthResponse`: `accessToken` presente y no vacío, `tokenType` = Bearer, `expiresIn` = 900 | PASS | Enviado a mano en Bruno, una sola vez; duración no informada. Token copiado a la variable secreta `staffToken` (comprobado en el almacén de Bruno con formato cifrado, sin mostrar su valor). |
+| 33 | Caso | `E2E-AUTH-01-ADMIN` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | ADMIN por `adminIdentifier` (email) | 200 | 200 | 2026-11-19, hora no informada | 200 | `AuthResponse`: `accessToken` presente y no vacío, `tokenType` = Bearer, `expiresIn` = 900 | PASS | Enviado a mano en Bruno, una sola vez; duración no informada. Token copiado a la variable secreta `adminToken` (comprobado en el almacén de Bruno con formato cifrado, sin mostrar su valor). |
+| 34 | Caso | `E2E-AUTH-01-ROLEINJ` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | ROLE_INJECTION por username (`roleinjection-r20261119a`) | 200 | 200 | 2026-11-19, hora no informada | 200 | `AuthResponse`: `accessToken` presente y no vacío, `tokenType` = Bearer, `expiresIn` = 900 | PASS | Enviado a mano en Bruno, una sola vez; duración no informada. Token copiado a la variable secreta `roleInjectionToken` (comprobado en el almacén de Bruno con formato cifrado, sin mostrar su valor). |
 | 35 | Caso | `E2E-AUTH-01-INACTIVE` | E2, paso 8 | ANONYMOUS | `POST /api/auth/login` | pendiente | 200 | 200 | pendiente | pendiente | pendiente | NOT RUN | pendiente |
-| 36 | Caso | `E2E-AUTH-02` | E2, paso 9 | USER_A | `GET /api/auth/me` | pendiente | 200 | 200; mismo `id` que el control previo (cierra TC-AUTH-003) | pendiente | pendiente | pendiente | NOT RUN | pendiente |
+| 36 | Caso | `E2E-AUTH-02` | E2, paso 9 | USER_A | `GET /api/auth/me` | `userAToken` | 200 | 200; mismo `id` que el control previo (cierra TC-AUTH-003) | 2026-11-19, ~14:13 (1.er intento) y ~14:17 (2.º) | 401 → 200 | 1.er intento: 401 «Authentication is required» (1,03 s). 2.º intento, tras renovar `userAToken`: `id` = 1, `username` = usera-r20261119a, `roles` = ["USER"], sin contraseña ni token (354 ms) | PASS | Resultado final tras renovar el token. El token anterior se emitió hacia las 12:41 con vigencia de 900 s, así que su caducidad es la explicación probable del 401, no una causa confirmada. TC-AUTH-003 no se ejecutó (D-02), así que este envío no lo cierra. Ver «Reenvíos no previstos». |
 | 37 | Caso | `E2E-AUTH-02-B` | E2, paso 9 | USER_B | `GET /api/auth/me` | pendiente | 200 | `roles = ["USER"]` | pendiente | pendiente | pendiente | NOT RUN | pendiente |
 | 38 | Caso | `E2E-AUTH-02-STAFF` | E2, paso 9 | STAFF | `GET /api/auth/me` | pendiente | 200 | `roles = ["STAFF"]` | pendiente | pendiente | pendiente | NOT RUN | pendiente |
 | 39 | Caso | `E2E-AUTH-02-ADMIN` | E2, paso 9 | ADMIN | `GET /api/auth/me` | pendiente | 200 | `roles = ["ADMIN"]` | pendiente | pendiente | pendiente | NOT RUN | pendiente |
@@ -213,7 +215,8 @@ Las filas de tipo **Reenvío** y **Condicional** son evidencia del caso que veri
 
 | Tras el # | Petición | Motivo | Hora | HTTP observado | Resultado | Observación |
 |---|---|---|---|---|---|---|
-| — | — | — | — | — | — | — |
+| 36 | `E2E-AUTH-02` (1.er intento) | Envío de la fila 36 con el `userAToken` emitido hacia las 12:41 | ~14:13 | 401 | — | «Authentication is required»; probable caducidad del token (TTL 900 s), no confirmada |
+| 36 | `E2E-AUTH-01` (renovación) | Nuevo login de USER_A para renovar `userAToken` | entre ~14:13 y ~14:17 | 200 (según la ejecutora) | — | Token copiado a `userAToken`; después, la fila 36 responde 200 |
 
 ## Casos con comprobación posterior
 
@@ -257,12 +260,12 @@ Una fila por ruta con su caso nominal (§7). La cobertura de seguridad se cuenta
 
 | # | Ruta | Caso nominal | HTTP esperado | Resultado |
 |---|---|---|---|---|
-| 1 | `GET /api/venues/{{venueActiveCode}}` | `E2E-VEN-01` | 200 | NOT RUN |
-| 2 | `GET /api/venues/active` | `E2E-VEN-02` | 200 | NOT RUN |
-| 3 | `GET /api/artists/{{artistId}}` | `E2E-ART-01` | 200 | NOT RUN |
-| 4 | `GET /api/artists/by-stage-name?stageName={{artistStageName}}` | `E2E-ART-02` | 200 | NOT RUN |
-| 5 | `GET /api/artists/active` | `E2E-ART-03` | 200 | NOT RUN |
-| 6 | `POST /api/users` | `E2E-USR-01` | 201 | NOT RUN |
+| 1 | `GET /api/venues/{{venueActiveCode}}` | `E2E-VEN-01` | 200 | PASS |
+| 2 | `GET /api/venues/active` | `E2E-VEN-02` | 200 | PASS |
+| 3 | `GET /api/artists/{{artistId}}` | `E2E-ART-01` | 200 | PASS |
+| 4 | `GET /api/artists/by-stage-name?stageName={{artistStageName}}` | `E2E-ART-02` | 200 | PASS |
+| 5 | `GET /api/artists/active` | `E2E-ART-03` | 200 | PASS |
+| 6 | `POST /api/users` | `E2E-USR-01` | 201 | PASS |
 | 7 | `GET /api/users/by-email?email={{userAEmail}}` | `E2E-USR-02` | 200 | NOT RUN |
 | 8 | `GET /api/users/by-username?username={{userAUsername}}` | `E2E-USR-03` | 200 | NOT RUN |
 | 9 | `POST /api/events` | `E2E-EVT-01` | 201 | NOT RUN |
@@ -277,10 +280,10 @@ Una fila por ruta con su caso nominal (§7). La cobertura de seguridad se cuenta
 | 18 | `GET /api/events/{{publishedEventCode}}/tickets/paid` | `E2E-TKT-04` | 200 | NOT RUN |
 | 19 | `PATCH /api/tickets/{{ticketCancelableCode}}/cancel` | `E2E-TKT-05` | 200 | NOT RUN |
 | 20 | `PATCH /api/tickets/{{ticketUsableCode}}/use` | `E2E-TKT-06` | 200 | NOT RUN |
-| 21 | `POST /api/auth/login` | `E2E-AUTH-01` | 200 | NOT RUN |
-| 22 | `GET /api/auth/me` | `E2E-AUTH-02` | 200 | NOT RUN |
+| 21 | `POST /api/auth/login` | `E2E-AUTH-01` | 200 | PASS |
+| 22 | `GET /api/auth/me` | `E2E-AUTH-02` | 200 | PASS |
 
-Rutas nominales: 0/22 PASS (actualizar al consolidar).
+Rutas nominales: 8/22 PASS; las demás, NOT RUN por la ejecución parcial (D-02).
 
 ## Cobertura de seguridad
 
@@ -288,11 +291,11 @@ Casos TC-AUTH y TC-SEC (PRD §8.2 y §8.3), contados aparte de la cobertura nomi
 
 | Caso | Actor | Ruta | HTTP esperado | Resultado |
 |---|---|---|---|---|
-| `TC-AUTH-001` → `E2E-USR-01` | ANONYMOUS | `POST /api/users` | 201 | NOT RUN |
+| `TC-AUTH-001` → `E2E-USR-01` | ANONYMOUS | `POST /api/users` | 201 | PASS |
 | `TC-SEC-016` | ANONYMOUS | `POST /api/users` | 201 | NOT RUN |
-| `TC-AUTH-002` → `E2E-AUTH-01` | ANONYMOUS | `POST /api/auth/login` | 200 | NOT RUN |
+| `TC-AUTH-002` → `E2E-AUTH-01` | ANONYMOUS | `POST /api/auth/login` | 200 | PASS |
 | `TC-AUTH-003` | ANONYMOUS | `POST /api/auth/login` | 200 | NOT RUN |
-| `TC-AUTH-006` → `E2E-AUTH-02` | USER_A | `GET /api/auth/me` | 200 | NOT RUN |
+| `TC-AUTH-006` → `E2E-AUTH-02` | USER_A | `GET /api/auth/me` | 200 | PASS |
 | `TC-AUTH-004` | ANONYMOUS | `POST /api/auth/login` | 401 | NOT RUN |
 | `TC-AUTH-005` | ANONYMOUS | `POST /api/auth/login` | 401 | NOT RUN |
 | `TC-AUTH-007` | ANONYMOUS | `GET /api/auth/me` | 401 | NOT RUN |
@@ -335,7 +338,7 @@ Casos TC-AUTH y TC-SEC (PRD §8.2 y §8.3), contados aparte de la cobertura nomi
 | `TC-AUTH-011b-CTRL` | USER_A (token con el emisor por defecto) | `GET /api/auth/me` | 200 | NOT RUN |
 | `TC-AUTH-011b` | USER_A (token con el emisor por defecto) | `GET /api/auth/me` | 401 | NOT RUN |
 
-Casos de seguridad: 0/46 PASS (actualizar al consolidar).
+Casos de seguridad: 3/46 PASS; los demás, NOT RUN (D-02).
 
 ## Matriz requisito → caso → ruta → resultado
 
@@ -343,17 +346,17 @@ La ruta de cada caso figura en la bitácora de envíos y en las tablas de cobert
 
 | Requisito | Descripción | Casos y evidencias | Resultado |
 |---|---|---|---|
-| FR-E2E-001/002 | Colección importable, ambiente editable, 22 rutas | A-02; CONN-01; cobertura nominal (22) | NOT RUN |
-| FR-E2E-003/004 | Login y /me de cada actor; un token por actor | E2E-AUTH-01, TC-AUTH-003, E2E-AUTH-01-B/-STAFF/-ADMIN; E2E-AUTH-02, E2E-AUTH-02-B/-STAFF/-ADMIN | NOT RUN |
-| FR-E2E-005/006 | HTTP y JSON comparados; códigos copiados entre peticiones | Todas las filas; copias de `artistId`, T1–T5 y tokens | NOT RUN |
+| FR-E2E-001/002 | Colección importable, ambiente editable, 22 rutas | A-02; CONN-01; cobertura nominal (22) | Parcial: colección importada (A-02) y CONN-01 en PASS; 8/22 rutas probadas, las demás NOT RUN (D-02) |
+| FR-E2E-003/004 | Login y /me de cada actor; un token por actor | E2E-AUTH-01, TC-AUTH-003, E2E-AUTH-01-B/-STAFF/-ADMIN; E2E-AUTH-02, E2E-AUTH-02-B/-STAFF/-ADMIN | NOT RUN (parcial: login de los 4 actores PASS; `/me` solo de USER_A) |
+| FR-E2E-005/006 | HTTP y JSON comparados; códigos copiados entre peticiones | Todas las filas; copias de `artistId`, T1–T5 y tokens | PASS (en los envíos ejecutados) |
 | FR-E2E-007/008 | Matriz de autorización; estado antes y después | Cobertura de seguridad; reenvíos de integridad (E2E-EVT-02-ADMIN, E2E-TKT-02, E2E-TKT-02-T2, E2E-TKT-03, TC-SEC-008-CHK, E2E-EVT-02) | NOT RUN |
 | FR-E2E-009 | ErrorResponse de 5 campos, sin datos sensibles | TC-HTTP-001 a TC-HTTP-014 y todos los 4xx | NOT RUN |
-| FR-E2E-010/016 | Datos controlados y repetibilidad | A-05 (R-B), A-10, A-11, A-13, A-15, A-16 | NOT RUN |
-| FR-E2E-011/012 | Instrucciones paso a paso y bitácora | `checklist-e2e-manual.md`; esta bitácora | NOT RUN |
-| FR-E2E-013 | Sin tokens ni contraseñas exportados | A-01, A-12, A-24, A-27 | NOT RUN |
-| FR-E2E-014/015 | Regresión registrada; bloqueos marcados | Sección «Defectos»; criterios BLOCKED | NOT RUN |
-| FR-E2E-017 | Coherencia con las Fases 3 y 4 | Toda la bitácora (sin cambios en el backend, F5-H) | NOT RUN |
-| AC-01 | Registro y login | E2E-USR-01, E2E-AUTH-01, E2E-AUTH-02 | NOT RUN |
+| FR-E2E-010/016 | Datos controlados y repetibilidad | A-05 (R-B), A-10, A-11, A-13, A-15, A-16 | Parcial: A-05, A-10, A-11 y A-13 en PASS; A-15 y A-16 NOT RUN (D-02) |
+| FR-E2E-011/012 | Instrucciones paso a paso y bitácora | `checklist-e2e-manual.md`; esta bitácora | PASS |
+| FR-E2E-013 | Sin tokens ni contraseñas exportados | A-01, A-12, A-24, A-27 | Parcial: A-01 y A-12 en PASS; A-24 y A-27 NOT RUN (D-02) |
+| FR-E2E-014/015 | Regresión registrada; bloqueos marcados | Sección «Defectos»; criterios BLOCKED | PASS |
+| FR-E2E-017 | Coherencia con las Fases 3 y 4 | Toda la bitácora (sin cambios en el backend, F5-H) | PASS (en los envíos ejecutados; sin cambios en el backend) |
+| AC-01 | Registro y login | E2E-USR-01, E2E-AUTH-01, E2E-AUTH-02 | PASS |
 | AC-02 | ADMIN publica | E2E-EVT-01, E2E-EVT-05, E2E-EVT-04, E2E-EVT-02, E2E-EVT-06 | NOT RUN |
 | AC-03 | USER sin privilegio | TC-AUTH-014, TC-SEC-001-USER, TC-SEC-002-USER, TC-SEC-003 (+ comprobaciones) | NOT RUN |
 | AC-04 | Protección de propiedad | TC-SEC-009, TC-SEC-010, TC-SEC-011 (+ reenvío de E2E-TKT-02) | NOT RUN |
@@ -362,7 +365,7 @@ La ruta de cada caso figura en la bitácora de envíos y en las tablas de cobert
 | AC-07 | JWT inválido | TC-AUTH-008, TC-AUTH-009, TC-AUTH-010, TC-AUTH-011a, TC-AUTH-011b | NOT RUN |
 | AC-08 | Borradores | E2E-EVT-02-PRE, E2E-EVT-03-PRE, TC-SEC-004, TC-SEC-005, TC-SEC-015 | NOT RUN |
 | AC-09 | ErrorResponse | TC-HTTP-001 a TC-HTTP-014 | NOT RUN |
-| AC-10 | Verificación manual completa | Toda la bitácora, recuentos y cobertura nominal | NOT RUN |
+| AC-10 | Verificación manual completa | Toda la bitácora, recuentos y cobertura nominal | NOT RUN (ejecución parcial, D-02) |
 
 ## Consolidación por carpeta
 
@@ -370,16 +373,26 @@ Recuento de casos (filas de tipo Caso). Los reenvíos y condicionales no se cuen
 
 | Carpeta | Casos | PASS | FAIL | BLOCKED | NOT RUN |
 |---|---|---|---|---|---|
-| 00 Preparación / conectividad | 1 | 0 | 0 | 0 | 1 |
-| 01 Venues (2 rutas) | 2 | 0 | 0 | 0 | 2 |
-| 02 Artists (3 rutas) | 3 | 0 | 0 | 0 | 3 |
-| 03 Auth / usuarios (registro, login, me) | 23 | 0 | 0 | 0 | 23 |
+| 00 Preparación / conectividad | 1 | 1 | 0 | 0 | 0 |
+| 01 Venues (2 rutas) | 2 | 2 | 0 | 0 | 0 |
+| 02 Artists (3 rutas) | 3 | 3 | 0 | 0 | 0 |
+| 03 Auth / usuarios (registro, login, me) | 23 | 10 | 0 | 0 | 13 |
 | 04 Usuarios / consulta y propiedad (2 rutas) | 6 | 0 | 0 | 0 | 6 |
 | 05 Events / administración y visibilidad (6 rutas) | 24 | 0 | 0 | 0 | 24 |
 | 06 Tickets / compra, consulta y ciclo de vida (6 rutas) | 24 | 0 | 0 | 0 | 24 |
 | 07 Seguridad / escenarios negativos | 22 | 0 | 0 | 0 | 22 |
 | 08 Validaciones y errores HTTP | 19 | 0 | 0 | 0 | 19 |
-| **Total** | **124** | 0 | 0 | 0 | 124 |
+| **Total** | **124** | 16 | 0 | 0 | 108 |
+
+## Resumen de la ejecución (D-02)
+
+Ejecución manual **parcial** por el plazo de entrega del 19-11-2026, aprobada como desviación D-02 (`tests/e2e/README.md`). Los casos no ejecutados quedan en NOT RUN; no se declaran aprobados.
+
+- Acciones externas en PASS: A-01 a A-13, A-25 y A-26. Pendientes (NOT RUN): A-14 a A-24, A-27 y A-28.
+- Casos: 16 PASS, 0 FAIL, 0 BLOCKED y 108 NOT RUN, de 124.
+- Cobertura nominal: 8/22 rutas. Cobertura de seguridad: 3/46 casos.
+- Defectos encontrados: ninguno en los casos ejecutados.
+- Incidencia: un 401 en el primer envío de E2E-AUTH-02, probablemente por caducidad del token; ver «Reenvíos no previstos».
 
 ## Defectos
 
