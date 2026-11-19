@@ -1,8 +1,10 @@
 # Fixtures y ambiente E2E — PulsePass Fase 5
 
-Esta guía prepara la base PostgreSQL **exclusiva** de las pruebas E2E manuales con Postman (PRD E2E
-§5.1 y §15). Explica cómo crear el contenedor, arrancar la aplicación contra él, comprobar que se usa
-la base correcta, aplicar los fixtures de `seed-e2e.sql` y repetir o restaurar el ambiente.
+Esta guía prepara la base PostgreSQL **exclusiva** de las pruebas E2E manuales (PRD E2E §5.1 y §15).
+La colección se conserva en formato Postman Collection v2.1, pero la ejecución manual se realiza con el
+cliente Bruno (desviación D-01, `tests/e2e/README.md`). Explica cómo crear el contenedor, arrancar la
+aplicación contra él, comprobar que se usa la base correcta, aplicar los fixtures de `seed-e2e.sql` y
+repetir o restaurar el ambiente.
 
 > **Regla de oro.** Todo se hace sobre el contenedor `pulsepass-e2e-db`, el volumen
 > `pulsepass-e2e-data` y la base `pulsepass_e2e`. Ningún paso toca otra base de datos ni otro
@@ -38,7 +40,7 @@ registran con otro email, el seed no los encuentra y falla sin cambiar nada.
 ## 3. Secretos de la sesión
 
 Se generan **en cada sesión de terminal** y solo viven en ella (P5-02-b). Nunca se escriben en el
-repositorio, la colección, el ambiente de Postman ni la bitácora.
+repositorio, la colección, el ambiente del cliente de ejecución (Bruno) ni la bitácora.
 
 ```bash
 export PULSEPASS_E2E_DB_PASSWORD="$(openssl rand -hex 16)"
@@ -186,7 +188,7 @@ los usuarios de ese `runId`, con sus roles y `active`) y `COMMIT`. Código de sa
 
 Valores marcados como DATO DE PRUEBA: el PRD no los define.
 
-**Actores** (todos registrados por `POST /api/users`; contraseñas solo en valores locales de Postman):
+**Actores** (todos registrados por `POST /api/users`; contraseñas solo en variables secretas de Bruno):
 
 | Actor | Email | Origen del privilegio |
 |---|---|---|

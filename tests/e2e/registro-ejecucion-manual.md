@@ -1,6 +1,6 @@
 # Registro de ejecución manual E2E — PulsePass Fase 5
 
-Bitácora de la ejecución oficial en Postman (PRD §13.4, §16.2 y §16.3). Se rellena **a mano** después de cada Send, siguiendo `checklist-e2e-manual.md`. **Todos los resultados empiezan en NOT RUN.** No incluir JWT, contraseñas, secretos ni capturas; solo datos no sensibles (códigos, ids, estados, mensajes).
+Bitácora de la ejecución oficial con el cliente Bruno (desviación D-01, `tests/e2e/README.md`) sobre la colección Postman v2.1 (PRD §13.4, §16.2 y §16.3). Se rellena **a mano** después de cada Send, siguiendo `checklist-e2e-manual.md`. **Todos los resultados empiezan en NOT RUN.** No incluir JWT, contraseñas, secretos ni capturas; solo datos no sensibles (códigos, ids, estados, mensajes).
 
 ## Cabecera de la ejecución
 
@@ -10,7 +10,7 @@ Bitácora de la ejecución oficial en Postman (PRD §13.4, §16.2 y §16.3). Se 
 | Ejecutor | pendiente |
 | Commit del repositorio | pendiente |
 | `runId` | pendiente |
-| Postman (versión y modo local sin sincronización, A-01) | pendiente |
+| Cliente de ejecución (Bruno, versión y modo local sin cuenta ni sincronización, A-01) | pendiente |
 | PostgreSQL (versión observada en A-09) | pendiente |
 | Java | pendiente |
 | Restauración R-B aplicada (A-05) | pendiente |
@@ -26,12 +26,12 @@ Bitácora de la ejecución oficial en Postman (PRD §13.4, §16.2 y §16.3). Se 
 
 Las filas de tipo **Reenvío** y **Condicional** son evidencia del caso que verifican: no se cuentan en los totales de casos.
 
-## Acciones fuera de Postman
+## Acciones fuera del cliente de ejecución
 
 | Orden | Acción | Descripción (ver checklist) | Hora | Resultado | Observación |
 |---|---|---|---|---|---|
-| 1 | A-01 | Postman solo en local, sin sincronización (si no, detenerse: BLOCKED) | pendiente | NOT RUN | pendiente |
-| 2 | A-02 | Importar la colección y el ambiente; seleccionar `PulsePass-local` | pendiente | NOT RUN | pendiente |
+| 1 | A-01 | Bruno solo en local, sin cuenta ni sincronización (si no, detenerse: BLOCKED) | pendiente | NOT RUN | pendiente |
+| 2 | A-02 | Importar en Bruno (fuera del repositorio) y comprobar la importación | pendiente | NOT RUN | pendiente |
 | 3 | A-03 | Completar la cabecera de la bitácora | pendiente | NOT RUN | pendiente |
 | 4 | A-04 | Anotar el estado de `pulsepass-db` (solo `docker inspect`) | pendiente | NOT RUN | pendiente |
 | 5 | A-05 | R-B: restaurar solo `pulsepass-e2e-db` y `pulsepass-e2e-data` | pendiente | NOT RUN | pendiente |
@@ -41,7 +41,7 @@ Las filas de tipo **Reenvío** y **Condicional** son evidencia del caso que veri
 | 9 | A-09 | Comprobaciones previas (Flyway, base y versión) | pendiente | NOT RUN | pendiente |
 | 10 | A-10 | Elegir el `runId` y rellenar los valores derivados | pendiente | NOT RUN | pendiente |
 | 11 | A-11 | Seed `venues` (anotar si se usa `inactive_venue=on`) | pendiente | NOT RUN | pendiente |
-| 12 | A-12 | Contraseñas solo como valores locales | pendiente | NOT RUN | pendiente |
+| 12 | A-12 | Marcar las 20 variables secretas en Bruno y verificar el cifrado local | pendiente | NOT RUN | pendiente |
 | 27 | A-13 | SQL `promote` (paso 7) | pendiente | NOT RUN | pendiente |
 | 48 | A-14 | Preparar `tamperedToken` (TC-AUTH-009) | pendiente | NOT RUN | pendiente |
 | 55 | A-15 | SQL `deactivate` (paso 11) | pendiente | NOT RUN | pendiente |
