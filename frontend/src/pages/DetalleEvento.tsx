@@ -5,6 +5,7 @@ import { BadgeEvento } from '../componentes/Badge'
 import { Boton } from '../componentes/Boton'
 import { Selector } from '../componentes/Campo'
 import { EstadoVacio } from '../componentes/Estados'
+import { Icono } from '../componentes/Icono'
 import { Modal } from '../componentes/Modal'
 import { ResultadoConsulta } from '../componentes/ResultadoConsulta'
 import { Tarjeta } from '../componentes/Tarjeta'
@@ -26,14 +27,16 @@ export default function DetalleEvento() {
       {(e) => (
         <article className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            <header className="fondo-degradado relative overflow-hidden rounded-3xl px-6 py-10 text-white shadow-xl shadow-marca-700/20 sm:px-8">
-              <div aria-hidden="true" className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/15 blur-3xl" />
+            <header className="fondo-degradado relative overflow-hidden rounded-3xl px-6 py-10 text-white sm:px-8">
               <div className="relative flex flex-wrap items-center gap-3">
                 <span className="rounded-full bg-black/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide">{ETIQUETA_CATEGORIA[e.category]}</span>
                 <BadgeEvento estado={e.status} />
               </div>
               <h1 className="relative mt-4 text-3xl font-extrabold leading-tight sm:text-5xl">{e.name}</h1>
-              <p className="relative mt-3 text-white/90">📅 {formatearFechaHora(e.eventDate)}</p>
+              <p className="relative mt-3 flex items-center gap-2 text-white/90">
+                <Icono nombre="calendar" className="h-4 w-4" />
+                {formatearFechaHora(e.eventDate)}
+              </p>
             </header>
             {e.description && <p className="whitespace-pre-line text-lg text-slate-700 dark:text-slate-300">{e.description}</p>}
             <dl className="grid grid-cols-2 gap-4 text-sm">

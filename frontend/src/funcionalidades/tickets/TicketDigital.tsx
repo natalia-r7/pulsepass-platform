@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { BadgeTicket } from '../../componentes/Badge'
+import { Icono } from '../../componentes/Icono'
 import { PrecioCOP } from '../../componentes/PrecioCOP'
 import { formatearFechaHora } from '../../lib/formato'
 import { RUTAS } from '../../lib/rutas'
@@ -15,10 +16,12 @@ export function TicketDigital({ ticket, acciones }: { ticket: TicketResponse; ac
   const evento = useEvento(ticket.eventCode)
   const nombre = evento.data?.name ?? ticket.eventCode
   return (
-    <article className="mx-auto w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-xl shadow-marca-600/10 ring-1 ring-slate-200/80 dark:bg-white/5 dark:ring-white/10">
+    <article className="mx-auto w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-md ring-1 ring-slate-200 dark:bg-white/5 dark:ring-white/10">
       <div className="fondo-degradado relative px-6 py-6 text-white">
-        <div aria-hidden="true" className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/15 blur-2xl" />
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/80">Entrada {ETIQUETA_TIPO[ticket.type]}</p>
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/80">
+          <Icono nombre="ticket" className="h-4 w-4" />
+          Entrada {ETIQUETA_TIPO[ticket.type]}
+        </p>
         <h2 className="mt-1 text-2xl font-extrabold leading-tight">
           <Link to={RUTAS.evento(ticket.eventCode)} className="hover:underline">
             {nombre}

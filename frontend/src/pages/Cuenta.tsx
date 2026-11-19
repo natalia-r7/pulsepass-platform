@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router'
+import { Icono } from '../componentes/Icono'
 import { ResultadoConsulta } from '../componentes/ResultadoConsulta'
 import { Tarjeta } from '../componentes/Tarjeta'
 import { Titulo } from '../componentes/Titulo'
@@ -36,7 +37,10 @@ export default function Cuenta() {
           )}
         </ResultadoConsulta>
         {porUsername.isSuccess && (
-          <p className="mt-3 text-xs font-semibold text-emerald-700 dark:text-emerald-300">✓ Cuenta verificada</p>
+          <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+            <Icono nombre="check" className="h-4 w-4" />
+            Cuenta verificada
+          </p>
         )}
       </Tarjeta>
     </div>

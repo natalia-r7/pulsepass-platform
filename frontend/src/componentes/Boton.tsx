@@ -4,11 +4,10 @@ import type { ComponentProps } from 'react'
 type Variante = 'primario' | 'secundario' | 'peligro' | 'fantasma'
 
 const VARIANTES: Record<Variante, string> = {
-  primario:
-    'fondo-degradado text-white shadow-lg shadow-marca-600/25 hover:shadow-marca-600/40 hover:brightness-110',
+  primario: 'bg-marca-600 text-white shadow-sm hover:bg-marca-700 dark:bg-marca-500 dark:hover:bg-marca-600',
   secundario:
     'border border-slate-300 bg-white text-slate-800 hover:border-marca-400 hover:bg-marca-50 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10',
-  peligro: 'bg-red-600 text-white shadow-lg shadow-red-600/20 hover:bg-red-700',
+  peligro: 'bg-red-600 text-white shadow-sm hover:bg-red-700',
   fantasma: 'text-marca-600 hover:bg-marca-50 dark:text-marca-300 dark:hover:bg-white/10',
 }
 

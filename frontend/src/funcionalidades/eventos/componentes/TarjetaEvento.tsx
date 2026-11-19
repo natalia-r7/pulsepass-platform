@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { Icono } from '../../../componentes/Icono'
 import { RUTAS } from '../../../lib/rutas'
 import { useSedesActivas } from '../../sedes/hooks'
 import { ETIQUETA_CATEGORIA, type EventCategory, type EventStatus, type EventSummaryResponse } from '../tipos'
@@ -32,16 +33,15 @@ export function TarjetaEvento({ evento, sede }: { evento: EventSummaryResponse; 
   const fechaValida = !Number.isNaN(fecha.getTime())
   const disponibilidad = DISPONIBILIDAD[evento.status]
   return (
-    <li className="group relative flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200/80 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-marca-600/10 dark:bg-white/5 dark:ring-white/10">
+    <li className="group relative flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 transition hover:ring-marca-400 dark:bg-white/5 dark:ring-white/10 dark:hover:ring-marca-400">
       <div className={`relative h-28 bg-gradient-to-br ${CABECERA[evento.category]}`}>
-        <div aria-hidden="true" className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/15 blur-xl" />
         <span className="absolute left-4 top-4 rounded-full bg-black/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur">
           {ETIQUETA_CATEGORIA[evento.category]}
         </span>
         {fechaValida && (
-          <div className="absolute -bottom-6 right-4 flex h-16 w-16 flex-col items-center justify-center rounded-2xl bg-white text-center shadow-lg dark:bg-[#150c2b]">
+          <div className="absolute -bottom-6 right-4 flex h-16 w-16 flex-col items-center justify-center rounded-xl bg-white text-center shadow-md ring-1 ring-slate-200 dark:bg-[#150c2b] dark:ring-white/10">
             <span className="text-2xl font-extrabold leading-none text-marca-700 dark:text-white">{dia.format(fecha)}</span>
-            <span className="text-xs font-semibold uppercase text-acento-600 dark:text-acento-400">{mes.format(fecha).replace('.', '')}</span>
+            <span className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{mes.format(fecha).replace('.', '')}</span>
           </div>
         )}
       </div>
@@ -60,7 +60,7 @@ export function TarjetaEvento({ evento, sede }: { evento: EventSummaryResponse; 
           </p>
         )}
         <p className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
-          <span aria-hidden="true">📍</span>
+          <Icono nombre="mapPin" className="h-4 w-4 shrink-0 text-marca-600 dark:text-marca-400" />
           {sede ? `${sede.name} · ${sede.city}` : `Sede ${evento.venueCode}`}
         </p>
         <div className="mt-auto pt-2">

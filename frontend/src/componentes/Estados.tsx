@@ -13,9 +13,8 @@ export function Cargando({ mensaje = 'Cargando…' }: { mensaje?: string }) {
 
 export function EstadoVacio({ mensaje }: { mensaje: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-marca-300/70 bg-white/60 p-10 text-center text-slate-600 dark:border-white/15 dark:bg-white/5 dark:text-slate-300">
-      <p aria-hidden="true" className="text-4xl">🎟️</p>
-      <p className="mt-2">{mensaje}</p>
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-10 text-center text-slate-600 dark:border-white/15 dark:bg-white/5 dark:text-slate-300">
+      <p>{mensaje}</p>
     </div>
   )
 }

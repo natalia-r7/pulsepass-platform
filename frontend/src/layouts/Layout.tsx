@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
+import { Icono } from '../componentes/Icono'
 import { useAuth } from '../funcionalidades/auth/useAuth'
 import { RUTAS } from '../lib/rutas'
 
@@ -67,7 +68,7 @@ export default function Layout() {
         <Link
           to={RUTAS.registro}
           onClick={() => setMenuAbierto(false)}
-          className="fondo-degradado flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold text-white shadow-lg shadow-marca-600/25 hover:brightness-110"
+          className="flex min-h-11 items-center justify-center rounded-full bg-marca-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-marca-700 dark:bg-marca-500 dark:hover:bg-marca-600"
         >
           Registrarse
         </Link>
@@ -81,11 +82,12 @@ export default function Layout() {
       </a>
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl dark:border-white/10 dark:bg-[#0b0618]/75">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link to={RUTAS.inicio} className="flex items-center gap-2 font-titulo text-xl font-extrabold" aria-label="PulsePass, inicio">
-            <span aria-hidden="true" className="fondo-degradado flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg shadow-marca-600/30">
-              ♪
-            </span>
-            <span className="texto-degradado">PulsePass</span>
+          <Link
+            to={RUTAS.inicio}
+            aria-label="PulsePass, inicio"
+            className="rounded-md font-titulo text-2xl font-extrabold tracking-tight text-slate-900 focus-visible:outline-2 focus-visible:outline-marca-600 dark:text-white"
+          >
+            Pulse<span className="text-marca-600 dark:text-marca-400">Pass</span>
           </Link>
           <nav aria-label="Principal" className="hidden flex-1 items-center gap-1 md:flex">
             {enlaces.map((e) => (
@@ -101,7 +103,7 @@ export default function Layout() {
               aria-label={oscuro ? 'Activar modo claro' : 'Activar modo oscuro'}
               className="flex h-11 w-11 items-center justify-center rounded-full text-lg hover:bg-marca-50 dark:hover:bg-white/10"
             >
-              {oscuro ? '☀' : '☾'}
+              <Icono nombre={oscuro ? 'sun' : 'moon'} className="h-5 w-5" />
             </button>
             {cuenta}
           </div>
@@ -113,7 +115,7 @@ export default function Layout() {
             aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
             onClick={() => setMenuAbierto((v) => !v)}
           >
-            {menuAbierto ? '✕' : '☰'}
+            <Icono nombre={menuAbierto ? 'x' : 'menu'} className="h-6 w-6" />
           </button>
         </div>
         {menuAbierto && (
@@ -136,9 +138,7 @@ export default function Layout() {
       </main>
       <footer className="mt-12 border-t border-slate-200/70 py-8 text-sm text-slate-600 dark:border-white/10 dark:text-slate-400">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4">
-          <p>
-            <span className="texto-degradado font-titulo font-bold">PulsePass</span> · Música, deporte y cultura en vivo · © 2026
-          </p>
+          <p>© 2026 PulsePass</p>
           <p className="space-x-3">
             <Link to={RUTAS.sedes} className="hover:underline">Sedes</Link>
             <Link to={RUTAS.artistas} className="hover:underline">Artistas</Link>

@@ -118,6 +118,11 @@ navbar translúcida, portada con categorías, tarjetas de evento con fecha desta
 sedes muestra «nombre · ciudad (código)» para distinguir sedes con el mismo nombre. Modo oscuro aplicado antes del
 primer pintado. Los textos técnicos (GAP-01, GAP-09, rutas de la API) se retiraron de la interfaz y siguen documentados aquí.
 
+Sin emojis decorativos: los iconos informativos (sede, fecha, ticket, confirmación, tema y menú) son SVG locales con los
+trazos de Lucide (licencia ISC) en `src/componentes/Icono.tsx`, sin dependencias nuevas; son `aria-hidden` y los botones
+conservan su nombre accesible. Logotipo tipográfico «PulsePass», botón principal violeta sólido, fondo liso y degradado
+reservado a la portada, la cabecera del evento y el ticket.
+
 ## Sesión y errores
 
 - Token en memoria y en `sessionStorage` (nunca `localStorage`, cookies ni URL); se valida con zod al arrancar y se
