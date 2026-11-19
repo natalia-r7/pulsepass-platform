@@ -3,8 +3,9 @@
 SPA en React que consume la API REST segura de PulsePass (PRD Frontend, `docs/proyecto Pulsepass.pdf`, pp. 138–200).
 El backend no se modificó: el frontend usa los DTO y endpoints reales de las Fases 3 y 4.
 
-> **Estado:** entrega del 19-11-2026. La aplicación compila, pasa lint y 46 pruebas automatizadas con la API simulada (MSW).
-> **No se ha verificado contra el backend real** y quedan requisitos pendientes (ver más abajo). El DoD §30.2 **no** se da por cumplido.
+> **Estado:** entrega del 19-11-2026. La aplicación compila, pasa lint y 47 pruebas automatizadas con la API simulada (MSW).
+> La integración con el backend real se verificó **parcialmente** sobre la base E2E aislada (sección «Verificación de
+> integración»). Quedan requisitos pendientes (ver más abajo). El DoD §30.2 **no** se da por cumplido.
 
 ## Stack
 
@@ -120,12 +121,57 @@ Las 23 operaciones tienen una forma de invocarse desde la interfaz:
 
 ## Pruebas (resultado del 19-11-2026)
 
-`npm test`: **4 archivos, 46 pruebas, 46 PASS** (API simulada con MSW, sin red real). `npm run lint`: 0 avisos.
+`npm test`: **4 archivos, 47 pruebas, 47 PASS** (API simulada con MSW, sin red real). `npm run lint`: 0 avisos.
 `npm run build`: correcto.
 
 Cubiertas de la §21: TEST-FE-LIB-001..005, TEST-FE-AUTH-001..011, TEST-FE-EVT-001..006, TEST-FE-ART-001..003,
 TEST-FE-VEN-001, TEST-FE-TKT-001..010, TEST-FE-STF-001..004, TEST-FE-ADM-001..006, TEST-FE-GEN-001, 003 y 004, más
-401 → «Tu sesión expiró», 500 y error de red. **No cubierta:** TEST-FE-GEN-002 (errorElement).
+401 → «Tu sesión expiró», 500, error de red y TEST-FE-AUTH-010b (Salir desde una ruta protegida → `/`). **No cubierta:** TEST-FE-GEN-002 (errorElement).
+
+## Verificación de integración con el backend real (19-11-2026, 16:00–16:13)
+
+Ejecutada a mano en el navegador contra la API real (`./mvnw spring-boot:run`, puerto 8080) y la base **E2E aislada**
+`pulsepass-e2e-db` (PostgreSQL 17.12, Flyway V1–V4), con `npm run dev` y el proxy `/api`. La base de desarrollo
+`pulsepass-db` no se tocó (mismo estado y volumen antes y después). Datos (DATO DE PRUEBA): `runId` `fe20261119`
+(locales V0/V1 por el seed `venues`; USER registrado por la interfaz; STAFF/ADMIN por la API + seed `promote`) y
+`fe20261119b` (STAFF/ADMIN auxiliares registrados por la interfaz + `promote`). Sin contraseñas ni tokens en este documento.
+
+| # | Escenario | Observado | Resultado |
+|---|---|---|---|
+| 1 | Registro de USER por la interfaz | 201; redirección a `/login` con «Cuenta creada» | PASS |
+| 2 | Login de USER | Sesión iniciada; navbar con el usuario | PASS |
+| 3 | Restaurar la sesión al recargar | `/cuenta` tras recarga: `/me`, `by-email` y `by-username` con rol USER | PASS |
+| 4 | Cartelera con filtro `?q=` | Lista `E2E-fe20261119-MAIN` (Publicado) | PASS |
+| 5 | Detalle de evento | Nombre, fecha, edad mínima 18, sede V0 (Bogotá, capacidad 100) | PASS |
+| 6 | Compra VIP (email de la sesión) | 201; confirmación `TKT-BE2B9E`, VIP, $200.000 (precio del backend), Pagado | PASS |
+| 7 | Mis tickets | Lista el ticket con estado Pagado y botón Cancelar | PASS |
+| 8 | Cancelar ticket (modal) | 200; la lista pasa a Cancelado y el botón desaparece | PASS |
+| 9 | USER en `/admin/eventos` | Redirección a `/403` | PASS |
+| 10 | Ruta inexistente | Página 404 | PASS |
+| 11 | Cerrar sesión | `sessionStorage` vacío, `localStorage` vacío, `/mis-tickets` → `/login` | PASS |
+| 12 | ADMIN: crear evento `E2E-fe20261119-ADM` (V1) | 201; navega a la gestión con insignia Borrador | PASS |
+| 13 | ADMIN: asociar artista | 200; aviso «Asociados en esta sesión: Neon Waves» | PASS |
+| 14 | ADMIN: asociar el mismo artista | 409 «Artist already associated…» mostrado | PASS |
+| 15 | ADMIN: publicar | 200; insignia Publicado y aviso | PASS |
+| 16 | ADMIN: publicar de nuevo | 409 «Only DRAFT events can be published…» mostrado | PASS |
+| 17 | Anónimo pulsa Comprar → login → vuelve al evento | Redirección con `desde` y regreso a `/eventos/E2E-fe20261119-ADM` | PASS |
+| 18 | Segunda compra (aforo 1) | 201; `TKT-8B9509`, General, $100.000; el evento agotado pasa a «Evento no disponible» para el público | PASS |
+| 19 | STAFF: buscar y marcar como usado | 200; «Ingreso registrado» | PASS |
+| 20 | STAFF: segundo uso | 409 «Only PAID tickets can be used…» mostrado | PASS |
+| 21 | STAFF: tickets pagados de MAIN | Estado vacío (su único ticket estaba cancelado) | PASS |
+
+**NOT RUN** contra el backend real: 409 por edad mínima, registro duplicado (409), login con credenciales inválidas,
+expiración real del token (401), búsqueda por código en `/admin/eventos`, listas y detalles de artistas y sedes,
+filtros por categoría y por artista, detalle de ticket y ticket ajeno (403/404), vista móvil y modo oscuro con datos reales.
+
+**Defecto encontrado y corregido:** al pulsar «Salir» dentro de una ruta protegida (`/admin/...`), la app terminaba en
+`/login` en lugar de `/` (§12.2). Causa: la guarda redirigía en cuanto la sesión quedaba anónima, antes de que se
+ejecutara `navigate('/')`. Corrección (`src/layouts/Layout.tsx`): primero se navega a `/` y después se cierra la sesión.
+Se añadió la prueba TEST-FE-AUTH-010b, que fallaba antes del cambio (terminaba en `/login`) y pasa después.
+La corrección se verificó con MSW; **no se repitió contra el backend real** (NOT RUN tras la corrección).
+
+En el setup, la preparación de MAIN (crear, asociar Solar Beat y publicar) se hizo como ADMIN **por la API** con `curl`,
+no por la interfaz; por eso no cuenta como evidencia de la interfaz.
 
 ## Brechas del backend (aceptadas, sin modificar el backend)
 
@@ -149,7 +195,8 @@ TEST-FE-VEN-001, TEST-FE-TKT-001..010, TEST-FE-STF-001..004, TEST-FE-ADM-001..00
 
 ## Pendientes (no implementados o no verificados)
 
-- **Verificación manual contra el backend real** (login, compra, cancelación, validación y publicación): no realizada.
+- **Verificación contra el backend real:** parcial (21 escenarios PASS); los escenarios NOT RUN de la sección anterior siguen pendientes.
+- Repetir contra el backend real el cierre de sesión desde `/admin` tras la corrección.
 - **Fidelidad visual** con las 32 imágenes de §9.0: no verificada (las imágenes no están en el repositorio, `docs/diseno/` no existe).
   Solo se revisaron a mano Inicio y Login en escritorio y móvil (375 px).
 - Barra de compra fija en móvil (`MovilEvento.png`) y menú desplegable de usuario en la navbar.

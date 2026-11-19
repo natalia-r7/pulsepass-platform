@@ -115,6 +115,16 @@ describe('Autenticación y guardas', () => {
     expect(screen.getAllByRole('link', { name: 'Ingresar' }).length).toBeGreaterThan(0)
   })
 
+  it('TEST-FE-AUTH-010b: Salir desde una ruta protegida (/admin) lleva a / (PRD §12.2)', async () => {
+    conSesion(admin)
+    const { router } = renderConProveedores('/admin/eventos')
+    await screen.findByRole('heading', { name: 'Administración de eventos' })
+    await userEvent.click(screen.getAllByRole('button', { name: 'Salir' })[0]!)
+    await waitFor(() => expect(sessionStorage.getItem('pulsepass.sesion')).toBeNull())
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+    expect(router.state.location.pathname).toBe('/')
+  })
+
   it('TEST-FE-AUTH-011: token expirado al restaurar sesión → anónimo', async () => {
     sessionStorage.setItem('pulsepass.sesion', JSON.stringify({ token: 'viejo', expiraEn: Date.now() - 1000 }))
     renderConProveedores('/')

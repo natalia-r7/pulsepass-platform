@@ -41,10 +41,12 @@ export default function Layout() {
   if (tieneRol('STAFF', 'ADMIN')) enlaces.push({ a: RUTAS.validacion, texto: 'Validar ingreso' })
   if (tieneRol('ADMIN')) enlaces.push({ a: RUTAS.adminEventos, texto: 'Administrar eventos' })
 
-  const salir = () => {
+  // Primero se sale de la ruta protegida y después se cierra la sesión; si no, la guarda
+  // redirige a /login antes de llegar a / (PRD §12.2).
+  const salir = async () => {
     setMenuAbierto(false)
+    await navigate(RUTAS.inicio)
     cerrarSesion('manual')
-    void navigate(RUTAS.inicio)
   }
 
   const cuenta =
@@ -53,7 +55,7 @@ export default function Layout() {
         <NavLink to={RUTAS.cuenta} className={claseEnlace} onClick={() => setMenuAbierto(false)}>
           Mi cuenta ({sesion.usuario.username})
         </NavLink>
-        <button type="button" onClick={salir} className={claseEnlace({ isActive: false })}>
+        <button type="button" onClick={() => void salir()} className={claseEnlace({ isActive: false })}>
           Salir
         </button>
       </>
