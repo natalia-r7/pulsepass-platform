@@ -1,0 +1,22 @@
+/** Rutas centralizadas (FE-003): no se escriben strings de ruta sueltos. */
+export const RUTAS = {
+  inicio: '/',
+  eventos: '/eventos',
+  evento: (eventCode: string) => `/eventos/${encodeURIComponent(eventCode)}`,
+  artistas: '/artistas',
+  artista: (id: number) => `/artistas/${id}`,
+  sedes: '/sedes',
+  sede: (code: string) => `/sedes/${encodeURIComponent(code)}`,
+  login: '/login',
+  registro: '/registro',
+  cuenta: '/cuenta',
+  misTickets: '/mis-tickets',
+  ticket: (ticketCode: string) => `/mis-tickets/${encodeURIComponent(ticketCode)}`,
+  confirmacion: (ticketCode: string) => `/compra/confirmacion/${encodeURIComponent(ticketCode)}`,
+  validacion: '/staff/validacion',
+  ticketsPagados: (eventCode: string) => `/staff/eventos/${encodeURIComponent(eventCode)}/tickets`,
+  adminEventos: '/admin/eventos',
+  adminCrear: '/admin/eventos/nuevo',
+  adminEvento: (eventCode: string) => `/admin/eventos/${encodeURIComponent(eventCode)}`,
+  sinPermisos: '/403',
+} as const
