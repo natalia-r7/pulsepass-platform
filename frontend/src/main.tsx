@@ -7,6 +7,9 @@ import { AuthProvider } from './funcionalidades/auth/AuthContext'
 import { crearQueryClient } from './lib/queryClient'
 import { crearRouter } from './router'
 
+// Tema inicial antes del primer pintado, para evitar un parpadeo de claro a oscuro.
+document.documentElement.classList.toggle('dark', window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false)
+
 const queryClient = crearQueryClient()
 const router = crearRouter()
 

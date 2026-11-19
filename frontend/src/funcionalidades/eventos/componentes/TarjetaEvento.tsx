@@ -1,32 +1,84 @@
 import { Link } from 'react-router'
-import { BadgeEvento } from '../../../componentes/Badge'
-import { formatearFechaHora } from '../../../lib/formato'
 import { RUTAS } from '../../../lib/rutas'
-import { ETIQUETA_CATEGORIA, type EventSummaryResponse } from '../tipos'
+import { useSedesActivas } from '../../sedes/hooks'
+import { ETIQUETA_CATEGORIA, type EventCategory, type EventStatus, type EventSummaryResponse } from '../tipos'
 
-export function TarjetaEvento({ evento }: { evento: EventSummaryResponse }) {
+/** Cabecera por categoría: mapa de clases completas (PRD §24.4, sin clases dinámicas). */
+const CABECERA: Record<EventCategory, string> = {
+  MUSIC: 'from-marca-700 via-marca-600 to-acento-600',
+  SPORTS: 'from-indigo-700 via-violet-600 to-sky-500',
+  TECHNOLOGY: 'from-violet-800 via-indigo-600 to-cyan-500',
+  EDUCATION: 'from-purple-700 via-violet-600 to-indigo-500',
+  CULTURE: 'from-fuchsia-700 via-purple-600 to-rose-500',
+  ENTERTAINMENT: 'from-pink-600 via-fuchsia-600 to-violet-600',
+}
+
+/** Disponibilidad según el estado real del evento; la API no informa cupos restantes (GAP-04). */
+const DISPONIBILIDAD: Record<EventStatus, { texto: string; clase: string }> = {
+  PUBLISHED: { texto: 'Entradas disponibles', clase: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' },
+  SOLD_OUT: { texto: 'Agotado', clase: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' },
+  DRAFT: { texto: 'Borrador', clase: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300' },
+  CANCELLED: { texto: 'Cancelado', clase: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' },
+  FINISHED: { texto: 'Finalizado', clase: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300' },
+}
+
+const dia = new Intl.DateTimeFormat('es-CO', { day: '2-digit' })
+const mes = new Intl.DateTimeFormat('es-CO', { month: 'short' })
+const fechaLarga = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+const hora = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' })
+
+export function TarjetaEvento({ evento, sede }: { evento: EventSummaryResponse; sede?: { name: string; city: string } }) {
+  const fecha = new Date(evento.eventDate)
+  const fechaValida = !Number.isNaN(fecha.getTime())
+  const disponibilidad = DISPONIBILIDAD[evento.status]
   return (
-    <li className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:ring-marca-500 dark:bg-slate-900 dark:ring-slate-800">
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-acento-500">{ETIQUETA_CATEGORIA[evento.category]}</span>
-        <BadgeEvento estado={evento.status} />
+    <li className="group relative flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200/80 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-marca-600/10 dark:bg-white/5 dark:ring-white/10">
+      <div className={`relative h-28 bg-gradient-to-br ${CABECERA[evento.category]}`}>
+        <div aria-hidden="true" className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/15 blur-xl" />
+        <span className="absolute left-4 top-4 rounded-full bg-black/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur">
+          {ETIQUETA_CATEGORIA[evento.category]}
+        </span>
+        {fechaValida && (
+          <div className="absolute -bottom-6 right-4 flex h-16 w-16 flex-col items-center justify-center rounded-2xl bg-white text-center shadow-lg dark:bg-[#150c2b]">
+            <span className="text-2xl font-extrabold leading-none text-marca-700 dark:text-white">{dia.format(fecha)}</span>
+            <span className="text-xs font-semibold uppercase text-acento-600 dark:text-acento-400">{mes.format(fecha).replace('.', '')}</span>
+          </div>
+        )}
       </div>
-      <h3 className="mt-2 text-lg font-semibold">
-        <Link to={RUTAS.evento(evento.eventCode)} className="hover:underline focus-visible:outline-2 focus-visible:outline-marca-600">
-          {evento.name}
-        </Link>
-      </h3>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{formatearFechaHora(evento.eventDate)}</p>
-      <p className="text-sm text-slate-600 dark:text-slate-400">Sede {evento.venueCode}</p>
+      <div className="flex flex-1 flex-col gap-2 p-5 pt-4">
+        <h3 className="pr-16 text-lg font-bold leading-snug">
+          <Link
+            to={RUTAS.evento(evento.eventCode)}
+            className="after:absolute after:inset-0 hover:text-marca-700 focus-visible:outline-2 focus-visible:outline-marca-600 dark:hover:text-marca-300"
+          >
+            {evento.name}
+          </Link>
+        </h3>
+        {fechaValida && (
+          <p className="text-sm text-slate-600 capitalize dark:text-slate-400">
+            {fechaLarga.format(fecha)} · {hora.format(fecha)}
+          </p>
+        )}
+        <p className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
+          <span aria-hidden="true">📍</span>
+          {sede ? `${sede.name} · ${sede.city}` : `Sede ${evento.venueCode}`}
+        </p>
+        <div className="mt-auto pt-2">
+          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${disponibilidad.clase}`}>{disponibilidad.texto}</span>
+        </div>
+      </div>
     </li>
   )
 }
 
 export function ListaEventos({ eventos }: { eventos: EventSummaryResponse[] }) {
+  // Nombre y ciudad de la sede desde la lista de sedes activas (ya en caché); si no está, se muestra el código.
+  const sedes = useSedesActivas()
+  const porCodigo = new Map((sedes.data ?? []).map((s) => [s.code, s]))
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {eventos.map((e) => (
-        <TarjetaEvento key={e.eventCode} evento={e} />
+        <TarjetaEvento key={e.eventCode} evento={e} sede={porCodigo.get(e.venueCode)} />
       ))}
     </ul>
   )

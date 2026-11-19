@@ -25,27 +25,27 @@ export default function DetalleEvento() {
     <ResultadoConsulta consulta={evento} ocultar403 noEncontrado={<EstadoVacio mensaje="Evento no disponible." />}>
       {(e) => (
         <article className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-sm font-semibold uppercase text-acento-500">{ETIQUETA_CATEGORIA[e.category]}</span>
-              <BadgeEvento estado={e.status} />
-            </div>
-            <h1 className="text-3xl font-bold">{e.name}</h1>
-            <p className="text-slate-600 dark:text-slate-400">{formatearFechaHora(e.eventDate)}</p>
-            {e.description && <p className="whitespace-pre-line">{e.description}</p>}
-            <dl className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-slate-500">Edad mínima</dt>
-                <dd className="font-semibold">{e.minimumAge === 0 ? 'Todo público' : `${e.minimumAge} años`}</dd>
+          <div className="space-y-6 lg:col-span-2">
+            <header className="fondo-degradado relative overflow-hidden rounded-3xl px-6 py-10 text-white shadow-xl shadow-marca-700/20 sm:px-8">
+              <div aria-hidden="true" className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/15 blur-3xl" />
+              <div className="relative flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-black/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide">{ETIQUETA_CATEGORIA[e.category]}</span>
+                <BadgeEvento estado={e.status} />
               </div>
-              <div>
+              <h1 className="relative mt-4 text-3xl font-extrabold leading-tight sm:text-5xl">{e.name}</h1>
+              <p className="relative mt-3 text-white/90">📅 {formatearFechaHora(e.eventDate)}</p>
+            </header>
+            {e.description && <p className="whitespace-pre-line text-lg text-slate-700 dark:text-slate-300">{e.description}</p>}
+            <dl className="grid grid-cols-2 gap-4 text-sm">
+              <div className="rounded-2xl bg-white/90 p-4 ring-1 ring-slate-200/80 dark:bg-white/5 dark:ring-white/10">
+                <dt className="text-slate-500">Edad mínima</dt>
+                <dd className="text-lg font-bold">{e.minimumAge === 0 ? 'Todo público' : `${e.minimumAge} años`}</dd>
+              </div>
+              <div className="rounded-2xl bg-white/90 p-4 ring-1 ring-slate-200/80 dark:bg-white/5 dark:ring-white/10">
                 <dt className="text-slate-500">Código</dt>
-                <dd className="font-semibold">{e.eventCode}</dd>
+                <dd className="font-mono text-lg font-bold">{e.eventCode}</dd>
               </div>
             </dl>
-            <p className="text-sm text-slate-500">
-              Artistas: la API no incluye los artistas en el detalle del evento (brecha GAP-09). Consulta el perfil de cada artista.
-            </p>
           </div>
           <aside className="space-y-4">
             <InfoSede code={e.venueCode} nombre={e.venueName ?? e.venueCode} />

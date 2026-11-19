@@ -32,11 +32,11 @@ export function Modal({ abierto, titulo, onCerrar, children }: PropsModal) {
         e.preventDefault()
         onCerrar()
       }}
-      className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-xl bg-white p-6 text-slate-900 shadow-xl backdrop:bg-slate-950/60 dark:bg-slate-900 dark:text-slate-100"
+      className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-3xl bg-white p-6 text-slate-900 shadow-2xl ring-1 ring-marca-500/20 backdrop:bg-marca-900/60 backdrop:backdrop-blur-sm dark:bg-[#150c2b] dark:text-slate-100"
     >
       {abierto && (
         <>
-          <h2 id="modal-titulo" className="text-lg font-semibold">
+          <h2 id="modal-titulo" className="text-xl font-bold">
             {titulo}
           </h2>
           <div className="mt-4">{children}</div>

@@ -41,7 +41,7 @@ describe('Tickets, STAFF y ADMIN', () => {
     const { router } = renderConProveedores('/eventos/CMF-2026')
     await userEvent.click(await screen.findByRole('button', { name: 'Comprar' }))
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar compra' }))
-    expect(await screen.findByText('User does not meet minimum age for this event')).toBeInTheDocument()
+    expect(await screen.findByText('No cumples la edad mínima requerida para este evento (for this event).')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/eventos/CMF-2026')
   })
 
@@ -95,7 +95,7 @@ describe('Tickets, STAFF y ADMIN', () => {
     renderConProveedores('/mis-tickets')
     await userEvent.click(await screen.findByRole('button', { name: 'Cancelar' }))
     await userEvent.click(screen.getByRole('button', { name: 'Sí, cancelar' }))
-    expect(await screen.findByText('Only PAID tickets can be cancelled')).toBeInTheDocument()
+    expect(await screen.findByText('Solo se pueden cancelar tickets pagados.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sí, cancelar' })).toBeInTheDocument()
   })
 
@@ -122,7 +122,7 @@ describe('Tickets, STAFF y ADMIN', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Marcar como usado' }))
     expect(await screen.findByText('Ingreso registrado: el ticket quedó como usado.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Marcar como usado' }))
-    expect(await screen.findByText('Only PAID tickets can be used')).toBeInTheDocument()
+    expect(await screen.findByText('Este ticket no se puede usar: ya fue utilizado o no está pagado.')).toBeInTheDocument()
   })
 
   it('TEST-FE-STF-003: ticket inexistente → 404 visible', async () => {
@@ -193,7 +193,7 @@ describe('Tickets, STAFF y ADMIN', () => {
     expect(await screen.findByText('Publicado')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Publicar evento' }))
     await userEvent.click(screen.getByRole('button', { name: 'Publicar' }))
-    expect(await screen.findByText('Only DRAFT events can be published')).toBeInTheDocument()
+    expect(await screen.findByText('Solo se pueden publicar eventos en borrador.')).toBeInTheDocument()
   })
 
   it('TEST-FE-ADM-006: asociar artista; duplicado → 409', async () => {
@@ -202,7 +202,7 @@ describe('Tickets, STAFF y ADMIN', () => {
     servidor.use(
       http.post(`${API}/events/:code/artists/:id`, () => {
         veces++
-        if (veces > 1) return HttpResponse.json(errorResponse(409, 'Conflict', 'Artist already associated'), { status: 409 })
+        if (veces > 1) return HttpResponse.json(errorResponse(409, 'Conflict', 'Artist already associated with event CMF-2026: Solar Beat'), { status: 409 })
         return HttpResponse.json(eventoCMF)
       }),
     )
@@ -211,6 +211,6 @@ describe('Tickets, STAFF y ADMIN', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Asociar' }))
     expect(await screen.findByText('Asociados en esta sesión: Solar Beat.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Asociar' }))
-    expect(await screen.findByText('Artist already associated')).toBeInTheDocument()
+    expect(await screen.findByText('El artista ya está asociado a este evento (CMF-2026: Solar Beat).')).toBeInTheDocument()
   })
 })

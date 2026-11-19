@@ -23,7 +23,7 @@ export default function AdminEventos() {
       </Titulo>
       <Tarjeta>
         <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
-          La API no ofrece un listado completo de eventos (GAP-01): busca un evento por su código para gestionarlo, incluidos los borradores.
+          Busca un evento por su código para gestionarlo, incluidos los borradores.
         </p>
         <form noValidate className="flex flex-wrap items-end gap-3" onSubmit={(e) => void handleSubmit((d) => navigate(RUTAS.adminEvento(d.codigo)))(e)}>
           <Campo className="min-w-60 flex-1" etiqueta="Código del evento" {...register('codigo')} error={formState.errors.codigo?.message} />

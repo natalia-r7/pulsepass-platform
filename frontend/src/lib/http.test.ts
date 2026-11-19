@@ -31,7 +31,7 @@ describe('lib/http', () => {
     )
     const error = await peticion('/prueba', z.unknown(), { metodo: 'POST', cuerpo: {} }).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ status: 400, message: 'Validation failed', details: { name: 'Name is required' } })
+    expect(error).toMatchObject({ status: 400, message: 'Revisa los datos del formulario.', details: { name: 'Name is required' } })
   })
 
   it('TEST-FE-LIB-003: cuerpo de error inválido → ApiError genérico', async () => {

@@ -59,7 +59,7 @@ export default function AdminCrearEvento() {
           <Selector etiqueta="Sede" {...register('venueCode')} error={e.venueCode?.message ?? (sedes.isError ? 'No se pudieron cargar las sedes' : undefined)}>
             <option value="">{sedes.isPending ? 'Cargando sedes…' : 'Selecciona una sede'}</option>
             {sedes.data?.map((s) => (
-              <option key={s.code} value={s.code}>{s.name} · {s.city}</option>
+              <option key={s.code} value={s.code}>{s.name} · {s.city} ({s.code})</option>
             ))}
           </Selector>
           <div className="sm:col-span-2">
@@ -69,7 +69,7 @@ export default function AdminCrearEvento() {
               rows={4}
               {...register('description')}
               aria-invalid={e.description ? true : undefined}
-              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+              className="mt-1.5 block w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm focus-visible:border-marca-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-marca-500/20 dark:border-white/15 dark:bg-white/5"
             />
             {e.description && <p className="mt-1 text-sm text-red-600">{e.description.message}</p>}
           </div>

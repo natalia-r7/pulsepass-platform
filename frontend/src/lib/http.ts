@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { traducirMensaje } from './mensajes'
 
 /** Contrato uniforme de errores del backend (PRD Controladores §13). */
 export const ErrorResponseSchema = z.object({
@@ -55,7 +56,7 @@ async function convertirError(respuesta: Response): Promise<ApiError> {
   const resultado = ErrorResponseSchema.safeParse(cuerpo)
   if (respuesta.status >= 500) return new ApiError(respuesta.status, MENSAJE_INESPERADO)
   if (resultado.success) {
-    return new ApiError(respuesta.status, resultado.data.message, resultado.data.details)
+    return new ApiError(respuesta.status, traducirMensaje(resultado.data.message), resultado.data.details)
   }
   return new ApiError(respuesta.status, MENSAJE_INESPERADO)
 }

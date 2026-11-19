@@ -18,7 +18,7 @@ const TONO_TICKET: Record<TicketStatus, string> = {
   CANCELLED: 'bg-red-100 text-red-800',
 }
 
-const BASE = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold'
+const BASE = 'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ring-black/5'
 
 export function BadgeEvento({ estado }: { estado: EventStatus }) {
   return <span className={`${BASE} ${TONO_EVENTO[estado]}`}>{ETIQUETA_ESTADO_EVENTO[estado]}</span>

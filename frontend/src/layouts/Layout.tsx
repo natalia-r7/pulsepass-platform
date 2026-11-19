@@ -12,10 +12,10 @@ interface Enlace {
 
 const claseEnlace = ({ isActive }: { isActive: boolean }) =>
   clsx(
-    'block rounded-md px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-marca-600',
+    'flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-marca-600',
     isActive
-      ? 'bg-marca-50 text-marca-700 dark:bg-slate-800 dark:text-marca-500'
-      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+      ? 'bg-marca-600/10 text-marca-700 dark:bg-white/10 dark:text-white'
+      : 'text-slate-600 hover:bg-marca-50 hover:text-marca-700 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
   )
 
 function useTemaOscuro(): [boolean, () => void] {
@@ -67,7 +67,7 @@ export default function Layout() {
         <Link
           to={RUTAS.registro}
           onClick={() => setMenuAbierto(false)}
-          className="block rounded-md bg-marca-600 px-3 py-2 text-sm font-semibold text-white hover:bg-marca-700"
+          className="fondo-degradado flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold text-white shadow-lg shadow-marca-600/25 hover:brightness-110"
         >
           Registrarse
         </Link>
@@ -76,13 +76,16 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <a href="#contenido" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">
+      <a href="#contenido" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-marca-700">
         Saltar al contenido
       </a>
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl dark:border-white/10 dark:bg-[#0b0618]/75">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link to={RUTAS.inicio} className="font-titulo text-lg font-bold text-marca-600 dark:text-marca-500">
-            ♪ PulsePass
+          <Link to={RUTAS.inicio} className="flex items-center gap-2 font-titulo text-xl font-extrabold" aria-label="PulsePass, inicio">
+            <span aria-hidden="true" className="fondo-degradado flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg shadow-marca-600/30">
+              ♪
+            </span>
+            <span className="texto-degradado">PulsePass</span>
           </Link>
           <nav aria-label="Principal" className="hidden flex-1 items-center gap-1 md:flex">
             {enlaces.map((e) => (
@@ -96,7 +99,7 @@ export default function Layout() {
               type="button"
               onClick={alternarTema}
               aria-label={oscuro ? 'Activar modo claro' : 'Activar modo oscuro'}
-              className="rounded-md px-2 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-lg hover:bg-marca-50 dark:hover:bg-white/10"
             >
               {oscuro ? '☀' : '☾'}
             </button>
@@ -104,7 +107,7 @@ export default function Layout() {
           </div>
           <button
             type="button"
-            className="rounded-md px-3 py-2 text-xl md:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-xl hover:bg-marca-50 md:hidden dark:hover:bg-white/10"
             aria-expanded={menuAbierto}
             aria-controls="menu-movil"
             aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
@@ -114,13 +117,13 @@ export default function Layout() {
           </button>
         </div>
         {menuAbierto && (
-          <nav id="menu-movil" aria-label="Menú móvil" className="space-y-1 border-t border-slate-200 px-4 py-3 md:hidden dark:border-slate-800">
+          <nav id="menu-movil" aria-label="Menú móvil" className="space-y-1 border-t border-slate-200/70 px-4 pb-5 pt-3 md:hidden dark:border-white/10">
             {enlaces.map((e) => (
               <NavLink key={e.a} to={e.a} className={claseEnlace} onClick={() => setMenuAbierto(false)}>
                 {e.texto}
               </NavLink>
             ))}
-            <hr className="border-slate-200 dark:border-slate-800" />
+            <hr className="my-2 border-slate-200 dark:border-white/10" />
             {cuenta}
             <button type="button" onClick={alternarTema} className={claseEnlace({ isActive: false })}>
               {oscuro ? 'Modo claro' : 'Modo oscuro'}
@@ -131,9 +134,11 @@ export default function Layout() {
       <main id="contenido" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
         <Outlet />
       </main>
-      <footer className="border-t border-slate-200 py-6 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">
-        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 px-4">
-          <p>© 2026 PulsePass · Caso de estudio académico</p>
+      <footer className="mt-12 border-t border-slate-200/70 py-8 text-sm text-slate-600 dark:border-white/10 dark:text-slate-400">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4">
+          <p>
+            <span className="texto-degradado font-titulo font-bold">PulsePass</span> · Música, deporte y cultura en vivo · © 2026
+          </p>
           <p className="space-x-3">
             <Link to={RUTAS.sedes} className="hover:underline">Sedes</Link>
             <Link to={RUTAS.artistas} className="hover:underline">Artistas</Link>

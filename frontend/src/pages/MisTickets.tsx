@@ -44,13 +44,14 @@ export default function MisTickets() {
           return (
             <ul className="space-y-3">
               {filtrados.map((t) => (
-                <li key={t.ticketCode} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+                <li key={t.ticketCode} className="flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-2xl border-l-8 border-marca-600 bg-white p-5 shadow-sm ring-1 ring-slate-200/80 dark:bg-white/5 dark:ring-white/10">
                   <div>
-                    <p className="font-semibold">
-                      <Link to={RUTAS.ticket(t.ticketCode)} className="hover:underline">{t.ticketCode}</Link>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Entrada · {ETIQUETA_TIPO[t.type]}</p>
+                    <p className="font-mono text-lg font-bold tracking-wider">
+                      <Link to={RUTAS.ticket(t.ticketCode)} className="hover:text-marca-700 dark:hover:text-marca-300">{t.ticketCode}</Link>
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {t.eventCode} · {ETIQUETA_TIPO[t.type]} · <PrecioCOP valor={t.price} /> · {formatearFechaHora(t.purchaseDate)}
+                      {t.eventCode} · <PrecioCOP valor={t.price} /> · {formatearFechaHora(t.purchaseDate)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

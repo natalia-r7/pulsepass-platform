@@ -108,7 +108,6 @@ function AsociarArtista({ eventCode }: { eventCode: string }) {
         >
           Asociar
         </Boton>
-        <p className="text-xs text-slate-500">EventResponse no devuelve la lista de artistas (GAP-09); se muestran solo los asociados en esta sesión.</p>
       </div>
     </Tarjeta>
   )

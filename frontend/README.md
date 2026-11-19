@@ -3,7 +3,7 @@
 SPA en React que consume la API REST segura de PulsePass (PRD Frontend, `docs/proyecto Pulsepass.pdf`, pp. 138–200).
 El backend no se modificó: el frontend usa los DTO y endpoints reales de las Fases 3 y 4.
 
-> **Estado:** entrega del 19-11-2026. La aplicación compila, pasa lint y 47 pruebas automatizadas con la API simulada (MSW).
+> **Estado:** entrega del 19-11-2026. La aplicación compila, pasa lint y 51 pruebas automatizadas con la API simulada (MSW).
 > La integración con el backend real se verificó **parcialmente** sobre la base E2E aislada (sección «Verificación de
 > integración»). Quedan requisitos pendientes (ver más abajo). El DoD §30.2 **no** se da por cumplido.
 
@@ -109,19 +109,31 @@ Las 23 operaciones tienen una forma de invocarse desde la interfaz:
 | A2 | `GET /api/auth/me` | AuthContext | Layout, Cuenta |
 | A3 | `POST /api/users` (con password) | `useRegistrarUsuario` | Registro |
 
+## Diseño visual (19-11-2026)
+
+Identidad de eventos en vivo con degradados violeta–fucsia (tokens en `src/index.css`), componentes con forma de píldora,
+navbar translúcida, portada con categorías, tarjetas de evento con fecha destacada, sede (nombre y ciudad desde
+`GET /api/venues/active`) y disponibilidad según el estado real (`PUBLISHED` → «Entradas disponibles», `SOLD_OUT` →
+«Agotado»; la API no informa cupos restantes, GAP-04), y entradas como ticket digital (`TicketDigital`). El selector de
+sedes muestra «nombre · ciudad (código)» para distinguir sedes con el mismo nombre. Modo oscuro aplicado antes del
+primer pintado. Los textos técnicos (GAP-01, GAP-09, rutas de la API) se retiraron de la interfaz y siguen documentados aquí.
+
 ## Sesión y errores
 
 - Token en memoria y en `sessionStorage` (nunca `localStorage`, cookies ni URL); se valida con zod al arrancar y se
   descarta si expiró. Viaja solo en `Authorization: Bearer`. Los roles salen de `GET /api/auth/me`.
 - Cierre local al vencer `expiresIn`; cualquier 401 fuera del login cierra la sesión, limpia la caché y lleva a
   `/login` con «Tu sesión expiró».
+- Los mensajes de negocio del backend (en inglés) se traducen al español en `src/lib/mensajes.ts` por prefijo,
+  conservando el código variable; un mensaje desconocido se muestra tal cual. Los mensajes por campo de un 400
+  (`details`) no se traducen.
 - `ApiError` uniforme: red → «No pudimos conectar con el servidor.»; 400 → `details` a los campos; 401 en login →
   «Credenciales inválidas.»; 403 → página `/403` (guardas) o «No disponible»/aviso; 404 → «no disponible» o 404;
   409 → mensaje del backend como texto; 500 → mensaje genérico.
 
 ## Pruebas (resultado del 19-11-2026)
 
-`npm test`: **4 archivos, 47 pruebas, 47 PASS** (API simulada con MSW, sin red real). `npm run lint`: 0 avisos.
+`npm test`: **5 archivos, 51 pruebas, 51 PASS** (API simulada con MSW, sin red real). `npm run lint`: 0 avisos.
 `npm run build`: correcto.
 
 Cubiertas de la §21: TEST-FE-LIB-001..005, TEST-FE-AUTH-001..011, TEST-FE-EVT-001..006, TEST-FE-ART-001..003,
@@ -204,3 +216,6 @@ no por la interfaz; por eso no cuenta como evidencia de la interfaz.
 - TEST-FE-GEN-002 y prueba explícita de invalidación de caché (QT-FE-008).
 - Auditoría de accesibilidad y rendimiento (Lighthouse/axe, QT-FE-011, NFR-FE-003).
 - Prettier + `prettier-plugin-tailwindcss`.
+- GAP-09: mostrar los artistas asociados en el detalle del evento (la API no los devuelve en `EventResponse`).
+- Traducir al español los mensajes por campo de los errores 400 (`details`).
+- Cargar las fuentes Poppins/Inter del sistema visual (§9.1).

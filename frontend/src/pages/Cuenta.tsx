@@ -16,7 +16,7 @@ export default function Cuenta() {
     <div className="space-y-6">
       <Titulo>Mi cuenta</Titulo>
       <Tarjeta>
-        <h2 className="font-semibold">Sesión (GET /api/auth/me)</h2>
+        <h2 className="font-semibold">Datos de acceso</h2>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
           <div><dt className="text-slate-500">Usuario</dt><dd className="font-semibold">{usuario.username}</dd></div>
           <div><dt className="text-slate-500">Correo</dt><dd className="font-semibold break-all">{usuario.email}</dd></div>
@@ -36,7 +36,7 @@ export default function Cuenta() {
           )}
         </ResultadoConsulta>
         {porUsername.isSuccess && (
-          <p className="mt-3 text-xs text-slate-500">Perfil verificado también por nombre de usuario (id {porUsername.data.id}).</p>
+          <p className="mt-3 text-xs font-semibold text-emerald-700 dark:text-emerald-300">✓ Cuenta verificada</p>
         )}
       </Tarjeta>
     </div>

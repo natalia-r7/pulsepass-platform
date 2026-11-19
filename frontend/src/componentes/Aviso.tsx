@@ -14,7 +14,7 @@ export function Aviso({ tipo, mensaje }: { tipo: TipoAviso; mensaje: string }) {
     <div
       role={tipo === 'error' ? 'alert' : 'status'}
       aria-live={tipo === 'error' ? 'assertive' : 'polite'}
-      className={clsx('rounded-lg border px-4 py-3 text-sm', TONO[tipo])}
+      className={clsx('rounded-xl border px-4 py-3 text-sm font-medium', TONO[tipo])}
     >
       {mensaje}
     </div>
