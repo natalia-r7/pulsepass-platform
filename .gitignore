@@ -12,3 +12,5 @@ backend/target/
 # Frontend: dependencias y compilación
 frontend/node_modules/
 frontend/dist/
+
+**/.claude/settings.local.json

@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: pulsepass
+  # P4-04-c: sin el usuario en memoria de Spring Boot, que se crearía mientras no exista nuestro
+  # UserDetailsService y escribiría su contraseña generada en el log (SEC-003). PulsePass nunca lo usa.
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        # P3-02: con Hibernate Validator en el classpath, Hibernate desactiva por defecto su
+        # comprobación de nulos. Se reactiva para conservar el rechazo antes del INSERT que
+        # verifican las pruebas de la Fase 1 (relaciones obligatorias venue, user y event).
+        check_nullability: true
+
+# P4-04-j (NFR-SEC-006): cada línea de log muestra el request ID que RequestIdFilter guarda en el MDC.
+logging:
+  pattern:
+    correlation: "[%X{requestId:-}] "
+
+# PRD de Seguridad §14.2 (P4-03): configuración del JWT de acceso. El secreto se lee siempre del
+# entorno; sin PULSEPASS_JWT_SECRET_BASE64 la aplicación no arranca (§12.2). Nunca un valor real aquí.
+# La duración es parametrizable (NFR-SEC-008, P4-11-B); por defecto, 15 minutos (§10.2).
+pulsepass:
+  security:
+    jwt:
+      issuer: ${PULSEPASS_JWT_ISSUER:pulsepass-api}
+      secret-base64: ${PULSEPASS_JWT_SECRET_BASE64}
+      access-token-ttl: ${PULSEPASS_JWT_ACCESS_TOKEN_TTL:PT15M}

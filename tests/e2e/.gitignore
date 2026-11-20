@@ -1,0 +1,8 @@
+# Fase 5 (E2E manual): nunca versionar secretos ni valores de una ejecución (FR-E2E-013, NFR-E2E-002).
+
+# Variables de entorno locales (contraseña de la base E2E, clave JWT, etc.), si se guardan en un
+# archivo en lugar de exportarlas en la terminal (P5-02-b). La raíz ya ignora .env y .env.*.
+.env.e2e*
+
+# Exportaciones de Postman con valores locales (tokens, contraseñas, códigos de una ejecución).
+*.local.json
